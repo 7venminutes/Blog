@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" class="fullscreen-bg">
+
+<head>
+{% if errinfo %}
+        <div class="alert alert-danger">
+            <a href="#" class="close" data-dismiss="alert">
+                &times;
+            </a>
+            {{ errinfo }}
+        </div>
+    {% endif %}
+	<title>Login</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+	<!-- VENDOR CSS -->
+    {% load staticfiles %}
+	<link rel="stylesheet" href="{%static 'css/bootstrap.css' %}">
+	<link rel="stylesheet" href="{%static 'assets/vendor/font-awesome/css/font-awesome.min.css' %}">
+	<link rel="stylesheet" href="{%static 'assets/vendor/linearicons/style.css'%}">
+	<!-- MAIN CSS -->
+	<link rel="stylesheet" href="{%static 'assets/css/main.css' %}">
+	<!-- FOR DEMO PURPOSES ONLY. You should remove this in your project -->
+	<link rel="stylesheet" href="{%static 'assets/css/demo.css'%}">
+	<!-- GOOGLE FONTS -->
+	<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700" rel="stylesheet">
+	<!-- ICONS -->
+	<link rel="apple-touch-icon" sizes="76x76" href="{%static 'assets/img/apple-icon.png'%}">
+	<link rel="icon" type="image/png" sizes="96x96" href="{%static 'assets/img/favicon.ico' %}">
+
+
+</head>
+
+<body>
+	<!-- WRAPPER -->
+	<div id="wrapper">
+		<div class="vertical-align-wrap">
+			<div class="vertical-align-middle">
+				<div class="auth-box ">
+					<div class="left">
+						<div class="content">
+							<div class="header">
+								<div class="logo text-center" style="font-size: 40px">ZHFS</div>
+								<p class="lead">登录您的云存储</p>
+							</div>
+							<form class="form-auth-small" action="/filescube/authentication/" method="post">
+                                {% csrf_token %}
+								<div class="form-group">
+									<label for="signin-email" class="control-label sr-only">用户名</label>
+									<input type="text" class="form-control" id="username" name="username" value="" placeholder="username">
+								</div>
+								<div class="form-group">
+									<label for="signin-password" class="control-label sr-only">密码</label>
+									<input type="password" class="form-control" id="passwd" name="passwd" value="" placeholder="Password">
+								</div>
+								<div class="form-group clearfix">
+									<label class="fancy-checkbox element-left">
+										<input type="checkbox">
+										<span style="font-family: 微软雅黑">记住我</span>
+									</label>
+								</div>
+								<button type="submit" id="submit" name="submit" class="btn btn-primary btn-lg btn-block">登录</button>
+								{% comment %}<div class="bottom">
+									<span class="helper-text"><i class="fa fa-lock"></i> <a href="#">Forgot password?</a></span>
+								</div>{% endcomment %}
+							</form>
+						</div>
+					</div>
+					<div class="right">
+						<div class="overlay"></div>
+						<div class="content text">
+							<h1 class="heading">ZHFS云存储平台</h1>
+							<p>by The Dev</p>
+						</div>
+					</div>
+					<div class="clearfix"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- END WRAPPER -->
+</body>
+<script src="{%static 'js/jquery-1.10.2.js' %}"></script>
+<!-- BOOTSTRAP SCRIPTS  -->
+<script src="{%static 'js/bootstrap.js' %}"></script>
+  <!-- CUSTOM SCRIPTS  -->
+<script src="{%static 'js/custom.js' %}"></script>
+
+</html>

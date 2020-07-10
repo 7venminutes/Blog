@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>权限管理</title>
+        {% load staticfiles %}
+    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet"/>
+    <!-- FONT AWESOME STYLE  -->
+    <link href="{% static 'css/font-awesome.css' %}" rel="stylesheet"/>
+    <!-- CUSTOM STYLE  -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet"/>
+    <!-- GOOGLE FONT -->
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'/>
+    <link href="{% static 'css/icons.css' %}" rel="stylesheet"/>
+    <!-- easyui -->
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/icon.css'%}>
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/metro/easyui.css'%}>
+    <script type="text/javascript" src={% static 'easyui/jquery.min.js'%}></script>
+    <script type="text/javascript" src={% static 'easyui/jquery.easyui.min.js'%}></script>
+    <script type="text/javascript" src={% static 'easyui/plugins/jquery.datagrid.js'%}></script>
+    <script type="text/javascript" src={% static 'easyui/datagrid-detailview.js'%}></script>
+</head>
+<body class="easyui-layout">
+<!--easyui 与bootstrap有很多奇奇怪怪的不兼容的问题，在easyui的datagrid的detailsview中设置<a>标签来触发bootstrap的MODAL是行不通的
+原因未知，没报错，解决方法：
+easyui中的<a>标签用来触发click_button事件，click_button来点击此处的按钮以触发bootstrap的modal，easyui布局外的元素是不可见的-->
+<a href="#" data-toggle="modal" data-target="#del_myModal"
+   id = "remove_user_button" onclick="change_data('remove',get_buffer())"> </a>
+<a href="#" data-toggle="modal" data-target="#modify_myModal"
+   id = "modify_user_button" onclick="change_data('modify',get_buffer())"> </a>
+<a href="#" data-toggle="modal" data-target="#del_volume_myModal"
+   id = "remove_volume_button" onclick="change_data('remove_volume',get_buffer())"> </a>
+<!--用DOM做前端的数据管理，数据缓存区-->
+<i id="curr_dir"></i>
+<i id="buffer"></i>
+<script>function get_curr_dir() {
+    return document.getElementById("curr_dir").value;
+}function set_curr_dir(v) {
+    document.getElementById("curr_dir").value = v;
+}
+function get_buffer(){
+    return document.getElementById("buffer").value;
+}
+function set_buffer(v){
+    document.getElementById("buffer").value = v;
+}
+</script>
+<!--自定义的工具栏，在datagrid中使用-->
+<div id="tb" style="padding:5px;height:auto">
+    <div style="margin-bottom:5px">
+        <a href="#" class="easyui-linkbutton" data-toggle="modal" data-target="#new_access_myModal"
+           plain="true" iconCls="icon-add">新增权限</a>
+        <a href="#" class="easyui-linkbutton" plain="true" iconCls="icon-remove"
+           onclick="remove_redundant_records()">清除冗余记录</a>
+        <input type="text" class="easyui-textbox" style="width:50%" id="path_to_query" name="path_to_query" value='hfs/'>
+        <button class="easyui-linkbutton" type="button" id="go_button" name="go" style="width:8%" onclick="query_access()">Go</button>
+    </div>
+</div>
+<!--按下go_button后触发-->
+<script>
+    function query_access()
+    {
+        set_curr_dir($('#path_to_query').textbox('getText'));
+        display_access();
+    }
+</script>
+<script>
+    function remove_redundant_records()
+    {
+        const csrf = $('input[name="csrfmiddlewaretoken"]').val();
+        $.ajax({
+            url: "/filescube/access_management/remove_redundant_access_records/",
+            type: "get",
+            data: {"csrfmiddlewaretoken": csrf},
+            success: function (data) {
+                data = JSON.parse(data);
+                if (data['state'] === 'success') {
+                    alert(data['details']);
+                    display_access();
+                    display_access_list_owned_by_userself();
+                } else
+                    alert(data['details']);
+            }
+        });
+    }
+</script>
+    <div data-options="region:'north', title:'当前路径为hfs/', split:true " align='center' style="padding:5px;">
+        您在该路径下的权限:
+        <br>
+        ...
+        <br>
+        ...
+    </div>
+    <div data-options="region:'west', split:true " style="width:150px;padding:5px;">
+        <button><a href="/filescube/index/">返回文件管理器</a></button>
+    </div>
+    <div data-options="region:'center'" align="center" style="padding:5px;">
+        <table class="easyui-datagrid" id="access_dg_1" title="{{ request.session.username }}  您的权限"></table>
+        <table class="easyui-datagrid" id="access_dg_2" title="权限管理（当前路径：'hfs/'）"></table>
+    </div>
+
+<!--修改用户主目录-->
+<div class="modal fade" id="new_access_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">增加权限</h4>
+            </div>
+            <form enctype="multipart/form-data" method="post" action="" id="upload_form">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input class="easyui-textbox" style="width: 150px" value="用户名" readonly>
+                    <select class="easyui-combobox" data-options="hasDownArrow:true" id="new_access_username">
+                        {% for user in user_list %}
+                            {% if user.user_ID != request.session.username %}
+                                <option>{{ user.user_ID }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="路径" readonly>
+                    <select class="easyui-combobox" data-options="hasDownArrow:true" id="new_access_path">
+                        {% for access_record in admin_access_list %}
+                            <option>{{ access_record.path }}</option>
+                        {% endfor %}
+                    </select>
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="权限赋予方式" readonly>
+                    <select class="easyui-combobox" data-options="editable:false" id="new_access_opt">
+                        <option>recursive</option>
+                        <option>current</option>
+                    </select>
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="可读" readonly>
+
+                    <input class="easyui-checkbox" value="read" id="read" checked="true">
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="可新建" readonly>
+                    <input class="easyui-checkbox" value="new" id="new" checked="true">
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="可下载" readonly>
+                    <input class="easyui-checkbox" value="download" id="download" checked="true">
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="可删除" readonly>
+                    <input class="easyui-checkbox" value="remove" id="remove" checked="true">
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="可修改" readonly>
+                    <input class="easyui-checkbox" value="modify" id="modify" checked="true">
+                    <br>
+                    <input class="easyui-textbox" style="width: 150px" value="可管理" readonly>
+                    <input class="easyui-checkbox" value="admin" id="admin" checked="true">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="add_new_access()">确认</button>
+                </div>
+            </form>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+<!--新增权限记录AJAX脚本-->
+<script>
+    function add_new_access()
+    {
+        const csrf = $('input[name="csrfmiddlewaretoken"]').val();
+        let user_id = $('#new_access_username').textbox('getText');
+        let path = $('#new_access_path').textbox('getText');
+        let opt = $('#new_access_opt').textbox('getText');
+        let read = $('#read').checkbox('options').checked;
+        let _new_ = $('#new').checkbox('options').checked;
+        let download = $('#download').checkbox('options').checked;
+        let modify = $('#modify').checkbox('options').checked;
+        let remove = $('#remove').checkbox('options').checked;
+        let admin = $('#admin').checkbox('options').checked;
+        $.ajax({
+            url: "/filescube/access_management/add_access_record/",
+            type: "post",
+            data: {"csrfmiddlewaretoken": csrf,
+                    "user_id": user_id,
+                    "path": path,
+                    "opt": opt,
+                    "read": read,
+                    "new": _new_,
+                    "download": download,
+                    "modify": modify,
+                    "remove": remove,
+                    "admin": admin},
+            success: function (data) {
+                data = JSON.parse(data);
+                if (data['state']==='success') {
+                    display_access();
+                    alert(data['details']);
+                }
+                else
+                    alert(data['details']);
+            }
+        });
+    }
+</script>
+<!-- BOOTSTRAP SCRIPTS  -->
+<script src="{% static 'js/bootstrap.js' %}"></script>
+<!-- CUSTOM SCRIPTS  -->
+<script src="{% static 'js/custom.js' %}"></script>
+<script src="{% static 'js/dataTables/jquery.dataTables.js' %}"></script>
+<script src="{% static 'js/dataTables/dataTables.bootstrap.js' %}"></script>
+<!--以下为js脚本区-->
+<script type="text/javascript" src="{% static 'easyui/expand/jquery-easyui-datagridview/datagrid-detailview.js' %}"></script>
+<script type="text/javascript">
+    function click_button(id, num){
+        switch (id) {
+            case 'remove_user_button':
+                set_buffer(num);
+                document.getElementById(id).click();
+                break;
+            case 'modify_user_button':
+                console.log(num);
+                set_buffer(num);
+                document.getElementById(id).click();
+                break;
+            case 'remove_volume_button':
+                console.log(num);
+                set_buffer(num);
+                document.getElementById(id).click();
+                break;
+        }
+    }
+    function change_data(id, num){
+        switch(id){
+            case 'remove':
+                document.getElementById('remove_user_name').value = num;
+                break;
+            case 'modify':
+                document.getElementById('modify_user_name').value = num['user_ID'];
+                document.getElementById('original_user_root_dir').value = num['root_dir'];
+                break;
+            case 'remove_volume':
+                document.getElementById('del_volume_actual_path').value = num['actual_path'];
+                document.getElementById('del_volume_path_in_hfs').value = num['path_in_hfs'];
+                break;
+        }
+    }
+</script>
+    <script>
+        function global_initialize(){
+            set_curr_dir('hfs/')
+        }
+        function display_access_list_owned_by_userself(){
+            const csrf = $('input[name="csrfmiddlewaretoken"]').val();
+            return $.ajax({
+                url: "/filescube/access_management/display_user_access/",
+                type: "post",
+                data: {"csrfmiddlewaretoken": csrf},
+                success: function (data) {
+                    data = JSON.parse(data);
+                    console.log(data);
+                    if (data['state'] === 'success'){
+                        $('#access_dg_1').datagrid('loadData', data['details']);
+                    }
+                    else {
+                        alert(data['details']);
+                        return '12345';
+                    }
+                }
+            })
+        }
+        function display_access(){
+            const csrf = $('input[name="csrfmiddlewaretoken"]').val();
+            let current_dir = get_curr_dir();
+            return $.ajax({
+                url: "/filescube/access_management/display_access/",
+                type: "post",
+                data: {"csrfmiddlewaretoken": csrf,
+                        'current_dir': current_dir},
+                success: function (data) {
+                    data = JSON.parse(data);
+                    console.log(data);
+                    if (data['state'] === 'success'){
+                        $('#access_dg_2').datagrid('loadData', data['details']);
+                    }
+                    else {
+                        alert(data['details']);
+                        return '12345';
+                    }
+                }
+            })
+        }
+        //access_dg初始化
+        function dg_init(){
+		    //console.log(user_list);
+			$('#access_dg_1').datagrid({
+				width:700,
+				fitColumns:true,
+				toolbar:$('#tb'),
+				columns:[[
+					{field:'path',title:'路径',width:200},
+                    {field:'opt',title:'权限生效方式',width:100},
+                    {field:'read',title:'可访问',width:50},
+            	    {field:'remove',title:'可删除',width:50},
+                    {field:'download',title:'可下载',width:50},
+            	    {field:'modify',title:'可修改',width:50},
+                    {field:'new',title:'可新建',width:50},
+            	    {field:'admin',title:'可管理',width:50},
+                ]],
+			});
+			$('#access_dg_2').datagrid({
+				width:700,
+				height:300,
+				fitColumns:true,
+				toolbar:$('#tb'),
+				columns:[[
+					{field:'user_id',title:'用户名',width:100},
+					{field:'path',title:'路径',width:200},
+                    {field:'opt',title:'权限生效方式',width:100},
+                    {field:'read',title:'访问',width:50},
+            	    {field:'remove',title:'删除',width:50},
+                    {field:'download',title:'下载',width:50},
+            	    {field:'modify',title:'修改',width:50},
+                    {field:'new',title:'新建',width:50},
+            	    {field:'admin',title:'管理',width:50},
+                ]],
+				view: detailview,
+                detailFormatter: function(rowIndex, rowData){
+				    var path_dbl_slash = rowData['path'].replace(/\\/g,'\\\\');
+				    console.log(path_dbl_slash);
+				    var data = '{\'user_id\': \''+rowData['user_id']+'\', \'path\': \''+path_dbl_slash+'\'}';
+				    console.log(data);
+					return '<table class="easyui-datagrid"><tr>' +
+							'<td ><a href="#" onclick="click_button(\'remove_user_button\',\'' + rowData['user_id'] + '\')"> 删除</a></td>' +
+                            '<td ><a href="#" onclick="click_button(\'modify_user_button\',' + data + ')"> 修改主目录</a></td>' +
+							'</tr></table>';
+				}
+			});
+		}
+		global_initialize();
+        dg_init();
+        display_access_list_owned_by_userself();
+        display_access();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+
+*/__pycache__/
+*.xml
+
+# 编译器留下来的文件
+*/.idea/
+
+# js
+/static/
+
+# django生成的版本控制文件夹
+*/migrations/
+
+# django生成的sqlite数据库文件
+*db.sqlite3
