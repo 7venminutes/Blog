@@ -1,0 +1,3 @@
+startup.conf中配置系统的初始化参数
+运行startup.py重新将系统所用数据库database/test.db按照startup.conf中的要求恢复为初始化状态
+数据库的路径配置在../const_var.py中

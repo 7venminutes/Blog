@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户管理</title>
+    {% load staticfiles %}
+    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet"/>
+    <!-- FONT AWESOME STYLE  -->
+    <link href="{% static 'css/font-awesome.css' %}" rel="stylesheet"/>
+    <!-- CUSTOM STYLE  -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet"/>
+    <!-- GOOGLE FONT -->
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'/>
+    <link href="{% static 'css/icons.css' %}" rel="stylesheet"/>
+    <!-- easyui -->
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/icon.css'%}>
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/metro/easyui.css'%}>
+    <script type="text/javascript" src={% static 'easyui/jquery.min.js'%}></script>
+    <script type="text/javascript" src={% static 'easyui/jquery.easyui.min.js'%}></script>
+    <script type="text/javascript" src={% static 'easyui/plugins/jquery.datagrid.js'%}></script>
+    <script type="text/javascript" src={% static 'easyui/datagrid-detailview.js'%}></script>
+</head>
+<body class="easyui-layout">
+
+<!--用DOM做前端的数据管理，数据缓存区-->
+<i id="buffer"></i>
+<script>function get_buffer() {
+    return document.getElementById("buffer").value;
+}function set_buffer(v) {
+    document.getElementById("buffer").value = v;
+}</script>
+<!--自定义的工具栏，在datagrid中使用-->
+<div id="tb" style="padding:5px;height:auto">
+    <div style="margin-bottom:5px">
+        <a href="/filescube/index/" class="easyui-linkbutton" iconCls="icon-back" plain="true"></a>
+        <a href="#" class="easyui-linkbutton" plain="true" iconCls="icon-add"
+           onclick="show_new_user_modal()">新增用户</a>
+        <a href="#" class="easyui-linkbutton" data-toggle="modal" data-target="#new_volume_myModal"
+           iconCls="icon-add" plain="true">新建卷</a>
+        <a href="#" class="easyui-linkbutton" iconCls="icon-more" plain="true"></a>
+    </div>
+</div>
+    <div data-options="region:'center'" align="center" style="padding:5px;">
+        <table class="easyui-datagrid" id="user_dg"></table>
+        <table class="easyui-datagrid" id="volume_dg"></table>
+    </div>
+
+<!--bootstrap模态框区-->
+<!--修改用户主目录-->
+<div class="modal fade" id="modify_user_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">修改用户主目录</h4>
+            </div>
+            <form enctype="multipart/form-data" method="post" action="" id="upload_form">
+                {% csrf_token %}
+                <div class="modal-body"><span>用户名</span><input type="text" class="form-control" name="modify_user_username"
+                                                              id="modify_user_username" readonly></div>
+                <div class="modal-body"><span>创建自</span><input type="text" class="form-control" name="user_created_by"
+                                                                    id="user_created_by" readonly></div>
+                <div class="modal-body"><span>原用户主目录</span><input type="text" class="form-control" name="modify_user_original_root_dir"
+                                                                  id="modify_user_original_root_dir" readonly></div>
+                <div class="modal-body"><span>新用户主目录</span><input type="text" class="form-control" name="modify_user_new_root_dir"
+                                                                    id="modify_user_new_root_dir"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal"
+                            onclick="modify_user_root_dir()">确认</button>
+                </div>
+            </form>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+<script>
+    function modify_user_root_dir(){
+        let user_name = document.getElementById('modify_user_username').value;
+        let user_created_by = document.getElementById('user_created_by').value;
+        let modify_user_original_root_dir = document.getElementById('modify_user_original_root_dir').value;
+        let modify_user_new_root_dir = document.getElementById('modify_user_new_root_dir').value;
+        const csrf = $('input[name="csrfmiddlewaretoken"]').val();
+        $.ajax({
+            url:"/filescube/user_management/modify_root_dir_of_user/",
+            type:"post",
+            data:{"user_id": user_name,
+                "user_created_by": user_created_by,
+                "original_dir": modify_user_original_root_dir,
+                "new_dir": modify_user_new_root_dir,
+                "csrfmiddlewaretoken":csrf,},
+            success:function (data) {
+                //改变user_dg中的展示状态
+                data = JSON.parse(data);
+                if(data['state']==='success'){
+                    display_user();
+                }
+                else{
+                    alert(data['details']);
+                }
+            }
+        });
+    }
+</script>
+<!--删除用户-->
+<div class="modal fade" id="del_user_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">删除用户</h4>
+            </div>
+            <form enctype="multipart/form-data" method="post" action="" id="upload_form">
+                {% csrf_token %}
+                <div class="modal-body"><span>用户名</span><input type="text" class="form-control" name="del_user_username"
+                                                               id="del_user_username" readonly></div>
+                <div class="modal-body"><span>创建自</span><input type="text" class="form-control" name="user_created_by"
+                                                                    id="user_created_by" readonly></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal"
+                            name="remove_user" id="remove_user" onclick=remove_user_a()>删除</button>
+                </div>
+            </form>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+
+<!--新增用户-->
+<div class="modal fade" id="new_user_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">新增用户</h4>
+            </div>
+
+            <form enctype="multipart/form-data" method="post" action="" id="upload_form">
+                {% csrf_token %}
+                <div class="modal-body"><span>用户名</span>
+                    <input type="text" class="form-control" name="new_user_id" id="new_user_id">
+                </div>
+                <div class="modal-body"><span>用户密码</span>
+                    <input type="text" class="form-control" name="new_user_password" id="new_user_password">
+                </div>
+                <div class="modal-body"><span>在哪个卷下创建用户</span>
+                    <select class="easyui-combobox" data-options="hasDownArrow:true,editable:false" id="new_user_volume">
+                    </select>
+                </div>
+                <div class="modal-body"><span>容量配额</span>
+                    <input type="text" class="form-control" name="new_user_size" id="new_user_size">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" name="new_user" id="new_user"
+                    onclick = make_new_user()>
+                        确认
+                    </button>
+                </div>
+            </form>
+
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+
+<!--新增卷-->
+<div class="modal fade" id="new_volume_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">新增本地卷</h4>
+            </div>
+            <form enctype="multipart/form-data" method="post" action="" id="upload_form">
+                {% csrf_token %}
+                <div class="modal-body"><span>卷名</span>
+                    <input type="text" class="form-control" name="new_volume_path_in_hfs" id="new_volume_path_in_hfs">
+                </div>
+                <div class="modal-body"><span>卷所对应的实际路径</span><input type="text" class="form-control" name="new_volume_actual_path"
+                                                              id="new_volume_actual_path"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" name="new_volume" id="new_volume" onclick="make_new_volume()">
+                        确认
+                    </button>
+                </div>
+            </form>
+
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+
+<!--删除卷-->
+<div class="modal fade" id="del_volume_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">删除本地卷</h4>
+            </div>
+            <form enctype="multipart/form-data" method="post" action="" id="upload_form">
+                {% csrf_token %}
+                <div class="modal-body"><span>卷在hfs系统中的挂载路径</span><input type="text" class="form-control" name="del_volume_path_in_hfs"
+                                                              id="del_volume_path_in_hfs"></div>
+                <div class="modal-body"><span>卷所对应的实际路径</span><input type="text" class="form-control" name="del_volume_actual_path"
+                                                              id="del_volume_actual_path"></div>
+                <div class="modal-body"><span>卷的种类</span><input type="text"  value="localhost" class="form-control" name="del_volume_type"
+                                                              id="del_volume_type" readonly></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal" name="del_volume" id="del_volume" onclick="remove_volume()">
+                        确认
+                    </button>
+                </div>
+            </form>
+
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+
+<!-- BOOTSTRAP SCRIPTS  -->
+<script src="{% static 'js/bootstrap.js' %}"></script>
+<!-- CUSTOM SCRIPTS  -->
+<script src="{% static 'js/custom.js' %}"></script>
+<script src="{% static 'js/dataTables/jquery.dataTables.js' %}"></script>
+<script src="{% static 'js/dataTables/dataTables.bootstrap.js' %}"></script>
+<!--以下为js脚本区-->
+<script type="text/javascript" src="{% static 'easyui/expand/jquery-easyui-datagridview/datagrid-detailview.js' %}"></script>
+
+</body>
+</html>
+
+<script type="text/javascript" src="{% static "custom_js/management/global_variables.js" %} "></script>
+<script type="text/javascript" src="{% static "custom_js/management/user_management/show_modal.js" %} "></script>
+<script type="text/javascript" src="{% static "custom_js/management/volume_management/show_modal.js" %} "></script>
+<!--user_dg和volume_dg的初始化-->
+<script type="text/javascript" src="{% static "custom_js/management/user_management/user_info_datagrid.js" %} "></script>
+<script type="text/javascript" src="{% static "custom_js/management/volume_management/volume_info_datagrid.js" %} "></script>
+<!--导入与后端进行交互操作的js脚本-->
+<script type="text/javascript" src="{% static "custom_js/management/user_management/operation.js" %} "></script>
+<script type="text/javascript" src="{% static "custom_js/management/volume_management/operation.js" %} "></script>
+
+<script>
+    display_user();
+    display_volume_mapping();
+</script>

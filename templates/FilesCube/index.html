@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <title>Title</title>
+    {% load staticfiles %}
+    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet"/>
+    <!-- FONT AWESOME STYLE  -->
+    <link href="{% static 'css/font-awesome.css' %}" rel="stylesheet"/>
+    <!-- CUSTOM STYLE  -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet"/>
+    <!-- easyui -->
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/icon.css'%}>
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/metro/easyui.css'%}>
+    <!-- webuploader -->
+        <link rel="stylesheet" type="text/css" href={% static "webuploader/webuploader.css" %}>
+<!--手动添加样式，修复webuploader中picker无法点击的bug-->
+<style>
+    #picker div:nth-child(2){width:100%!important;height:100%!important;}
+</style>
+
+</head>
+<body class="easyui-layout">
+    <!--========================================= 一级界面 ======================================================-->
+    <div data-options="region:'west',title:'Welcome: {{ request.session.username }}',split:true" style="width: 20%">
+        <div class="easyui-accordion" data-options="fit:true">
+            <div title="文件资源管理器" data-options="iconCls:'icon-save', selected:true">
+                <ul id ="navigationTree" class="easyui-tree" url="filescube/index/file_tree_navigation/" data-options="dnd:true"></ul>
+            </div>
+            <div title="帮助"  data-options="iconCls: 'icon-help'" style="overflow:auto;padding:5px;">
+		        <h3 style="color:#0099FF;">系统支持的功能</h3>
+		        <p>上传文件或文件夹<br>
+                   下载文件<br>
+                   新建文件或文件夹<br>
+                   重命名文件或文件夹<br>
+                   移动文件或文件夹<br>
+                   在线预览、编辑文本文件</p>
+                <p>更多详细功能请点击<a href="https://7venminutes.com" target="_blank">用户手册</a>查看</p>
+            </div>
+
+            <div title="设置" data-options="iconCls: 'icon-set'" style="padding: 10px">
+                <div class="easyui-accordion" data-options="fit:true">
+                    <div title="管理" data-options="selected:false">
+                        {% if request.session.sys_admin == True %}
+                            <a target="_blank" href="/filescube/user_management/" class="easyui-linkbutton"
+                                style="width:100%; color: #000000; background-color: rgba(208,182,15,0.8)">
+                                用户管理
+                            </a>
+
+                            <br>
+                            <a target="_blank" href="/filescube/user_management/" class="easyui-linkbutton"
+                                style="width:100%; color: #000000; background-color: rgba(208,182,15,0.8);">
+                                卷管理
+                            </a>
+                        {% endif %}
+
+                        <a target="_blank" href="/filescube/access_management/" class="easyui-linkbutton"
+                            style="width:100%; color: #000000; background-color: rgba(208,182,15,0.8);">
+                            权限管理
+                        </a>
+                    </div>
+
+                    <div title="账号" data-options="selected:false">
+                        <a href="/filescube/logout/" class="easyui-linkbutton" style="width:100%; background-color: rgba(144,50,50,0.91)">
+                            退出登录
+                        </a>
+                    </div>
+                </div>
+            </div> <!--设置栏div结束-->
+        </div><!--左侧侧边栏菜单结束-->
+    </div>
+    <div data-options="region:'center'">
+        <div class="easyui-layout" data-options="fit:true">
+            <!--文件路径框-->
+            <div data-options="region:'north'" style="height: 60px; padding: 10px">
+                <div class="input-group" style="width:100%">
+                    <label for="path_to_go"></label>
+                    <input type="text" class="form-control" id="path_to_go" name="path_to_go"
+                           style="width:91%" value={{ data_dir }}>
+                    <button class="btn btn-default" type="button" id="go_button" name="go"
+                            style="width:8%; min-width:50px"
+                            onclick="display_file_list(document.getElementById('path_to_go').value)">
+                        Go
+                    </button>
+                </div>
+            </div><!--文件路径框区域结束-->
+
+            <!--文件信息展示区域，展示某路径下所有文件，主操作界面-->
+            <div data-options="region:'center'" style="padding:5px;">
+                <div style="width: 100%;height:100%">
+                    <table class="easyui-datagrid" id="fileInfo_dataGrid" data-options="fit: true"></table>
+                </div>
+            </div><!--文件信息展示区域结束-->
+
+            <!--Event Log区域-->
+            <div data-options=" region:'south',split:true" style="height:105px;min-height: 105px">
+                <div id="bottom_hint_window_tab" class="easyui-tabs" data-options="fit:true, tabPosition: 'bottom'">
+                    <div title="Event Log" style="padding:20px;display:none;">
+                        {% if err_info %}
+                        <div class="alert alert-danger">
+                        <a href="#" class="close" data-dismiss="alert">
+                            &times;
+                        </a>
+                        {{ err_info }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div title="上传任务" style="display:none;">
+                        <table class="easyui-datagrid" id="uploadTaskInfo_dataGrid" style="width: 100%; height:100%;"></table>
+                    </div>
+                    <div title="下载任务" style="display:none;">
+                        <table class="easyui-datagrid" id="downloadTaskInfo_dataGrid" style="width: 100%; height:100%;"></table>
+                    </div>
+                </div>
+            </div><!--Event Log区域结束-->
+
+        </div>
+
+    </div>
+    <!--======================================= 一级界面结束 ======================================================-->
+
+    <!--======================================== 二级界面 ========================================================-->
+    <!------------------------------------------文件预览框----------------------------------------------------------->
+    <div id="file-windows-container">
+        <div id="file-preview-window" class="easyui-window" title="Modal Window"
+             data-options="closed:true,iconCls:'icon-save'" style="width:500px;height:200px;padding:10px;">
+            <input id="txt-preview-textbox" class="easyui-textbox"
+                   data-options="multiline:true, fit:true" readonly>
+    	</div>
+    </div><!--二级界面 ”文件预览框“ 结束-->
+
+    <!-------------------------------------上传界面(模态框upload_myModal)-------------------------------------------->
+    <div id="upload_window" class="easyui-window" title="上传文件"
+         data-options="closed:true, modal:true, minimizable:false" style="width:500px;height:309px;padding:10px;">
+        <div id="upload_window_tab" class="easyui-tabs" data-options="fit:true">
+
+            <div title="文件上传" id="bigFile-upload" style="overflow:auto;padding:20px;display:none;">
+                <div id="progress" class="progress" style="width:80%;">
+                    <div class="progress-bar progress-bar-striped active" role="progressbar" style="width:0%;">
+                    </div>
+                </div>
+
+                <div id="picker" align="center">点此添加上传文件</div>
+
+            </div><!--大文件上传界面结束-->
+
+            <div title="文件夹上传" style="padding:20px;display:none;">
+		        暂不支持文件夹上传
+            </div><!--文件夹上传界面结束-->
+
+            <div title="帮助" style="padding:20px;display:none;">
+                帮助文档还没写
+            </div><!--普通文件上传界面结束-->
+
+        </div>
+    </div><!--二级界面 "上传界面" 结束-->
+
+    <!-------------------------------------------任务进行框---------------------------------------------------------->
+        <div id="task-window" class="easyui-window" title="任务管理"
+             data-options="closed:true,iconCls:'icon-save'" style="width:500px;height:100%;padding:10px;">
+            <div id="task-window-accordion" class="easyui-accordion" data-options="fit:true">
+                <div title="上传任务管理" data-options="selected:false">
+                </div>
+                <div title="下载任务管理" data-options="selected:false">
+                </div>
+            </div>
+    	</div><!--二级界面 ”任务进行框“ 结束-->
+    <!------------------------------------------------------------------------------------------------------------->
+    <!-------------------------------------------模态框区域---------------------------------------------------------->
+
+    <!-----------------------------------删除目录项时用的模态框del_myModal--------------------------------------------->
+    <div class="modal fade" id="del_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="myModalLabel">删除文件</h4>
+                </div>
+
+                <input type="hidden" name="del_myModal_file_type" id="del_myModal_file_type" value="">
+
+                <div class="modal-body"><span>路径</span>
+                    <label for="del_myModal_path"></label>
+                    <input type="text" class="form-control" name="remove_path" id="del_myModal_path" readonly>
+                </div>
+
+                <div class="modal-body"><span>文件名</span>
+                    <label for="del_myModal_name"></label>
+                    <input type="text" class="form-control" name="remove_name" id="del_myModal_name" readonly>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal"
+                        name="remove_file" id="remove_file" onclick="remove_file()">确认</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div><!-- /.del_myModal -->
+
+    <!-------------------------对目录项进行重命名或移动操作时用到的模态框rename_myModal---------------------------------->
+    <div class="modal fade" id="rename_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="myModalLabel">移动/重命名</h4>
+                </div>
+
+                {% csrf_token %}
+
+                <input type="hidden" name="rename_myModal_file_type" id="rename_myModal_file_type">
+
+                <div class="modal-body"><span>当前路径</span>
+                    <label for="rename_myModal_curr_path"></label>
+                    <input type="text" class="form-control" name="curr_path" id="rename_myModal_curr_path" readonly>
+                </div>
+
+                <div class="modal-body"><span>当前名称</span>
+                    <label for="rename_myModal_curr_name"></label>
+                    <input type="text" class="form-control" name="curr_name" id="rename_myModal_curr_name" readonly>
+                </div>
+
+                <div class="modal-body"><span>目标路径</span>
+                    <label for="rename_myModal_des_path"></label>
+                    <input type="text" class="form-control" name="des_path" id="rename_myModal_des_path">
+                </div>
+
+                <div class="modal-body"><span>目标名称</span>
+                    <label for="rename_myModal_des_name"></label>
+                    <input type="text" class="form-control" name="des_name" id="rename_myModal_des_name">
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal"
+                            name="rename" id="rename" onclick="rename_or_move()">提交</button>
+                </div>
+
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div><!-- /.rename_myModal -->
+
+    <!-----------------------------------下载文件模态框download_myModal---------------------------------------------->
+    <form action="" method="post" target="_blank">
+        {% csrf_token %}
+        <div class="modal fade" id="download_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title" id="myModalLabel">文件下载</h4>
+                    </div>
+
+                    <div class="modal-body"><span>路径</span>
+                        <label for="download_path"></label>
+                        <input type="text" class="form-control" name="download_path" id="download_path" readonly>
+                    </div>
+
+                    <div class="modal-body"><span>名称</span>
+                        <label for="download_filename"></label>
+                        <input type="text" class="form-control" name="download_filename" id="download_filename" readonly>
+                    </div>
+
+                    <div class="modal-body"><span>URL</span>
+                        <label for="downloadurl"></label>
+                        <input type="text" class="form-control" value="" id="downloadurl" name="downloadurl" readonly>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                        <button class="btn btn-primary" name="download" id="download" onclick="download_single_file()">下载</button>
+                        <button type="submit" class="btn btn-primary" name="qr-code" id="qr-code">二维码生成</button>
+                    </div>
+
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div><!-- /.download_myModal -->
+    </form>
+
+    <!-----------------------------------新建目录项模态框mkdir_myModal------------------------------------------------>
+    <div class="modal fade" id="mkdir_myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="myModalLabel">创建文件夹</h4>
+                </div>
+                <form enctype="multipart/form-data" action="" method="post">
+                    {% csrf_token %}
+                    <div class="modal-body"><span>路径</span>
+                        <label for="mkdir_path"></label>
+                        <input type="text" class="form-control" name="mkdir_path" id="mkdir_path" readonly>
+                    </div>
+
+                    <div class="modal-body"><span>名称</span>
+                        <label for="mkdir_name"></label>
+                        <input type="text" class="form-control" name="mkdir_name" id="mkdir_name">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal"
+                            name="mkdir" id="mkdir" onclick="make_dir()">
+                            创建</button>
+                    </div>
+                </form>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div><!-- /.mkdir_myModal -->
+
+
+    <script>
+        function open_big_file_upload_window(){
+            window.open('/tools/upload_page?upload_path='+document.getElementById('upload_path').value)
+        }
+    </script>
+
+    <!-----------------------------------------模态框区域结束-------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------->
+
+</body>
+</html>
+
+<script type="text/javascript" src={% static 'easyui/jquery.min.js'%}></script>
+<script type="text/javascript" src={% static 'easyui/jquery.easyui.min.js'%}></script>
+<script type="text/javascript" src={% static 'easyui/plugins/jquery.datagrid.js'%}></script>
+<script type="text/javascript" src={% static 'easyui/datagrid-detailview.js'%}></script>
+<script type="text/javascript" src="{% static 'js/bootstrap.js' %}"></script>
+
+<!----------------------------------------自定义的js脚本----------------------------------------------------->
+<!--先声明所有的全局变量-->
+<script type="text/javascript" src={% static 'custom_js/index/global_variables.js' %}></script>
+
+<!--有些全局变量的值与django渲染有关，在该脚本中将这些全局变量进行初始化-->
+<script type="text/javascript">
+    image_dir['file'] = '{% static 'easyui/images/file.png' %}';
+    image_dir['folder'] = '{% static 'easyui/images/folder.png' %}';
+    function init_django_data(){
+        let data_dir = '{{ data_dir }}';
+        data_dir = data_dir.replace(/&#39;/g,'\'');
+        let data_list = '{{ data_list }}';
+        data_list = data_list.replace(/&#39;/g,'\'');
+        set_data_dir(data_dir);
+        set_data_list(eval(data_list));
+    }
+    init_django_data();
+</script>
+
+<!--operation.js中定义了对目录项的各种操作的AJAX代码-->
+<script src="{% static 'custom_js/index/operation.js' %}"></script>
+
+<!--定义fileInfo_dataGrid的各种行为-->
+<script src={% static 'custom_js/index/fileinfo_datagrid.js' %}></script>
+
+<script src={% static 'custom_js/index/uploadTaskInfo_datagrid.js' %}></script>
+
+<!--定义页面左侧导航树的各种行为-->
+<script src="{% static 'custom_js/index/navigationTree.js' %}"></script>
+
+<!--将各模态框的显示封装成函数-->
+<script src="{% static 'custom_js/index/show_modal.js' %}"></script>
+
+<!--在fileInfo_dataGrid中显示初始路径下的数据-->
+<script>
+    display_file_list(get_data_dir());
+</script>
+    <script src={% static "webuploader/webuploader.min.js" %}></script>
+    <script src="{% static 'custom_js/index/bigFile_upload.js' %}"></script>
+    <script src="{% static 'custom_js/index/secondary-interface.js' %}"></script>
