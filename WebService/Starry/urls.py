@@ -9,5 +9,8 @@ from django.conf.urls import url
 from django.urls import path, include
 from django.views.static import serve
 
+from WebService.Starry import views as starry_views
+
 urlpatterns = [
+    url(r'(.*)$', starry_views.starry),
 ]
