@@ -3,6 +3,7 @@
 
 import sys
 _b=sys.version_info[0]<3 and (lambda x:x) or (lambda x:x.encode('latin1'))
+from google.protobuf.internal import enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
@@ -19,15 +20,80 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='task_common.proto',
   package='starryImage',
   syntax='proto2',
-  serialized_pb=_b('\n\x11task_common.proto\x12\x0bstarryImage\"\xa2\x03\n\nTaskCommon\x12\x0e\n\x06taskId\x18\x01 \x02(\t\x12\x13\n\x0bmodelSelect\x18\x02 \x02(\t\x12\x13\n\x0b\x63reatedTime\x18\x03 \x02(\x03\x12\x16\n\x0eprocessingTime\x18\x04 \x01(\x03\x12,\n\x05image\x18\x05 \x02(\x0b\x32\x1d.starryImage.TaskCommon.Image\x12\x31\n\ntransImage\x18\x06 \x01(\x0b\x32\x1d.starryImage.TaskCommon.Image\x12.\n\x06status\x18\x07 \x02(\x0e\x32\x1e.starryImage.TaskCommon.Status\x1aG\n\x05Image\x12/\n\x04type\x18\x01 \x02(\x0e\x32!.starryImage.TaskCommon.ImageType\x12\r\n\x05image\x18\x02 \x02(\x0c\"\x1d\n\tImageType\x12\x07\n\x03JPG\x10\x01\x12\x07\n\x03PNG\x10\x02\"I\n\x06Status\x12\x07\n\x03New\x10\x01\x12\x0e\n\nProcessing\x10\x02\x12\x0f\n\x0bProcessFail\x10\x03\x12\x0b\n\x07Success\x10\x04\x12\x08\n\x04\x46\x61il\x10\x05')
+  serialized_pb=_b('\n\x11task_common.proto\x12\x0bstarryImage\"a\n\x05Image\x12*\n\x04type\x18\x01 \x02(\x0e\x32\x1c.starryImage.Image.ImageType\x12\r\n\x05image\x18\x02 \x02(\x0c\"\x1d\n\tImageType\x12\x07\n\x03JPG\x10\x01\x12\x07\n\x03PNG\x10\x02\"n\n\nStarryPost\x12\x0e\n\x06taskId\x18\x01 \x02(\t\x12-\n\x0bmodelSelect\x18\x02 \x02(\x0e\x32\x18.starryImage.ModelOption\x12!\n\x05image\x18\x03 \x02(\x0b\x32\x12.starryImage.Image\"B\n\rWebStarryPost\x12\x0e\n\x06taskId\x18\x01 \x02(\t\x12!\n\x05image\x18\x02 \x02(\x0b\x32\x12.starryImage.Image*\x8f\x01\n\x0bModelOption\x12\t\n\x05\x43\x61ndy\x10\x01\x12\n\n\x06\x43ubist\x10\x02\x12\x13\n\x0f\x44\x65noised_Starry\x10\x03\x12\x0c\n\x08\x46\x65\x61thers\x10\x04\x12\n\n\x06Mosaic\x10\x05\x12\x0c\n\x08Painting\x10\x06\x12\x0b\n\x07Picasso\x10\x07\x12\n\n\x06Scream\x10\x08\x12\t\n\x05Udnie\x10\t\x12\x08\n\x04Wave\x10\n')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
+_MODELOPTION = _descriptor.EnumDescriptor(
+  name='ModelOption',
+  full_name='starryImage.ModelOption',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='Candy', index=0, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Cubist', index=1, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Denoised_Starry', index=2, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Feathers', index=3, number=4,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Mosaic', index=4, number=5,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Painting', index=5, number=6,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Picasso', index=6, number=7,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Scream', index=7, number=8,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Udnie', index=8, number=9,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='Wave', index=9, number=10,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=314,
+  serialized_end=457,
+)
+_sym_db.RegisterEnumDescriptor(_MODELOPTION)
+
+ModelOption = enum_type_wrapper.EnumTypeWrapper(_MODELOPTION)
+Candy = 1
+Cubist = 2
+Denoised_Starry = 3
+Feathers = 4
+Mosaic = 5
+Painting = 6
+Picasso = 7
+Scream = 8
+Udnie = 9
+Wave = 10
 
 
-_TASKCOMMON_IMAGETYPE = _descriptor.EnumDescriptor(
+_IMAGE_IMAGETYPE = _descriptor.EnumDescriptor(
   name='ImageType',
-  full_name='starryImage.TaskCommon.ImageType',
+  full_name='starryImage.Image.ImageType',
   filename=None,
   file=DESCRIPTOR,
   values=[
@@ -42,64 +108,76 @@ _TASKCOMMON_IMAGETYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=349,
-  serialized_end=378,
+  serialized_start=102,
+  serialized_end=131,
 )
-_sym_db.RegisterEnumDescriptor(_TASKCOMMON_IMAGETYPE)
-
-_TASKCOMMON_STATUS = _descriptor.EnumDescriptor(
-  name='Status',
-  full_name='starryImage.TaskCommon.Status',
-  filename=None,
-  file=DESCRIPTOR,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='New', index=0, number=1,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='Processing', index=1, number=2,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='ProcessFail', index=2, number=3,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='Success', index=3, number=4,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='Fail', index=4, number=5,
-      options=None,
-      type=None),
-  ],
-  containing_type=None,
-  options=None,
-  serialized_start=380,
-  serialized_end=453,
-)
-_sym_db.RegisterEnumDescriptor(_TASKCOMMON_STATUS)
+_sym_db.RegisterEnumDescriptor(_IMAGE_IMAGETYPE)
 
 
-_TASKCOMMON_IMAGE = _descriptor.Descriptor(
+_IMAGE = _descriptor.Descriptor(
   name='Image',
-  full_name='starryImage.TaskCommon.Image',
+  full_name='starryImage.Image',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='type', full_name='starryImage.TaskCommon.Image.type', index=0,
+      name='type', full_name='starryImage.Image.type', index=0,
       number=1, type=14, cpp_type=8, label=2,
       has_default_value=False, default_value=1,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='image', full_name='starryImage.TaskCommon.Image.image', index=1,
+      name='image', full_name='starryImage.Image.image', index=1,
       number=2, type=12, cpp_type=9, label=2,
       has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _IMAGE_IMAGETYPE,
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto2',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=34,
+  serialized_end=131,
+)
+
+
+_STARRYPOST = _descriptor.Descriptor(
+  name='StarryPost',
+  full_name='starryImage.StarryPost',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='taskId', full_name='starryImage.StarryPost.taskId', index=0,
+      number=1, type=9, cpp_type=9, label=2,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='modelSelect', full_name='starryImage.StarryPost.modelSelect', index=1,
+      number=2, type=14, cpp_type=8, label=2,
+      has_default_value=False, default_value=1,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='image', full_name='starryImage.StarryPost.image', index=2,
+      number=3, type=11, cpp_type=10, label=2,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -115,73 +193,37 @@ _TASKCOMMON_IMAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=276,
-  serialized_end=347,
+  serialized_start=133,
+  serialized_end=243,
 )
 
-_TASKCOMMON = _descriptor.Descriptor(
-  name='TaskCommon',
-  full_name='starryImage.TaskCommon',
+
+_WEBSTARRYPOST = _descriptor.Descriptor(
+  name='WebStarryPost',
+  full_name='starryImage.WebStarryPost',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='taskId', full_name='starryImage.TaskCommon.taskId', index=0,
+      name='taskId', full_name='starryImage.WebStarryPost.taskId', index=0,
       number=1, type=9, cpp_type=9, label=2,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='modelSelect', full_name='starryImage.TaskCommon.modelSelect', index=1,
-      number=2, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='createdTime', full_name='starryImage.TaskCommon.createdTime', index=2,
-      number=3, type=3, cpp_type=2, label=2,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='processingTime', full_name='starryImage.TaskCommon.processingTime', index=3,
-      number=4, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='image', full_name='starryImage.TaskCommon.image', index=4,
-      number=5, type=11, cpp_type=10, label=2,
+      name='image', full_name='starryImage.WebStarryPost.image', index=1,
+      number=2, type=11, cpp_type=10, label=2,
       has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='transImage', full_name='starryImage.TaskCommon.transImage', index=5,
-      number=6, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='status', full_name='starryImage.TaskCommon.status', index=6,
-      number=7, type=14, cpp_type=8, label=2,
-      has_default_value=False, default_value=1,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
   ],
   extensions=[
   ],
-  nested_types=[_TASKCOMMON_IMAGE, ],
+  nested_types=[],
   enum_types=[
-    _TASKCOMMON_IMAGETYPE,
-    _TASKCOMMON_STATUS,
   ],
   options=None,
   is_extendable=False,
@@ -189,33 +231,40 @@ _TASKCOMMON = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=35,
-  serialized_end=453,
+  serialized_start=245,
+  serialized_end=311,
 )
 
-_TASKCOMMON_IMAGE.fields_by_name['type'].enum_type = _TASKCOMMON_IMAGETYPE
-_TASKCOMMON_IMAGE.containing_type = _TASKCOMMON
-_TASKCOMMON.fields_by_name['image'].message_type = _TASKCOMMON_IMAGE
-_TASKCOMMON.fields_by_name['transImage'].message_type = _TASKCOMMON_IMAGE
-_TASKCOMMON.fields_by_name['status'].enum_type = _TASKCOMMON_STATUS
-_TASKCOMMON_IMAGETYPE.containing_type = _TASKCOMMON
-_TASKCOMMON_STATUS.containing_type = _TASKCOMMON
-DESCRIPTOR.message_types_by_name['TaskCommon'] = _TASKCOMMON
+_IMAGE.fields_by_name['type'].enum_type = _IMAGE_IMAGETYPE
+_IMAGE_IMAGETYPE.containing_type = _IMAGE
+_STARRYPOST.fields_by_name['modelSelect'].enum_type = _MODELOPTION
+_STARRYPOST.fields_by_name['image'].message_type = _IMAGE
+_WEBSTARRYPOST.fields_by_name['image'].message_type = _IMAGE
+DESCRIPTOR.message_types_by_name['Image'] = _IMAGE
+DESCRIPTOR.message_types_by_name['StarryPost'] = _STARRYPOST
+DESCRIPTOR.message_types_by_name['WebStarryPost'] = _WEBSTARRYPOST
+DESCRIPTOR.enum_types_by_name['ModelOption'] = _MODELOPTION
 
-TaskCommon = _reflection.GeneratedProtocolMessageType('TaskCommon', (_message.Message,), dict(
-
-  Image = _reflection.GeneratedProtocolMessageType('Image', (_message.Message,), dict(
-    DESCRIPTOR = _TASKCOMMON_IMAGE,
-    __module__ = 'task_common_pb2'
-    # @@protoc_insertion_point(class_scope:starryImage.TaskCommon.Image)
-    ))
-  ,
-  DESCRIPTOR = _TASKCOMMON,
+Image = _reflection.GeneratedProtocolMessageType('Image', (_message.Message,), dict(
+  DESCRIPTOR = _IMAGE,
   __module__ = 'task_common_pb2'
-  # @@protoc_insertion_point(class_scope:starryImage.TaskCommon)
+  # @@protoc_insertion_point(class_scope:starryImage.Image)
   ))
-_sym_db.RegisterMessage(TaskCommon)
-_sym_db.RegisterMessage(TaskCommon.Image)
+_sym_db.RegisterMessage(Image)
+
+StarryPost = _reflection.GeneratedProtocolMessageType('StarryPost', (_message.Message,), dict(
+  DESCRIPTOR = _STARRYPOST,
+  __module__ = 'task_common_pb2'
+  # @@protoc_insertion_point(class_scope:starryImage.StarryPost)
+  ))
+_sym_db.RegisterMessage(StarryPost)
+
+WebStarryPost = _reflection.GeneratedProtocolMessageType('WebStarryPost', (_message.Message,), dict(
+  DESCRIPTOR = _WEBSTARRYPOST,
+  __module__ = 'task_common_pb2'
+  # @@protoc_insertion_point(class_scope:starryImage.WebStarryPost)
+  ))
+_sym_db.RegisterMessage(WebStarryPost)
 
 
 # @@protoc_insertion_point(module_scope)

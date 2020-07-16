@@ -11,31 +11,36 @@ syntax = "proto2";
 
 package starryImage;
 
-message TaskCommon {
+    Candy = 1;
+    Cubist = 2;
+    Denoised_Starry = 3;
+    Feathers = 4;
+    Mosaic = 5;
+    Painting = 6;
+    Picasso = 7;
+    Scream = 8;
+    Udnie = 9;
+    Wave = 10;
+}
 
+message Image {
     enum ImageType {
         JPG = 1;
         PNG = 2;
     }
+    required ImageType type = 1;
+    required bytes image = 2;
+}
 
-    message Image {
-        required ImageType type = 1;
-        required bytes image = 2;
-    }
-
-    enum Status {
-        New = 1;
-        Processing = 2;
-        ProcessFail = 3;
-        Success = 4;
-        Fail = 5;
-    }
-
+// StarryImage Post Request
+message StarryPost {
     required string taskId = 1;
-    required string modelSelect = 2;
-    required int64 createdTime = 3;
-    optional int64 processingTime = 4;
-    required Image image= 5;
-    optional Image transImage = 6;
-    required Status status = 7;
+    required ModelOption modelSelect = 2;
+    required Image image= 3;
+}
+
+// WebService StarryImage return Post Request
+message WebStarryPost {
+    required string taskId = 1;
+    required Image image= 2;
 }
