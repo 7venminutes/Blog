@@ -1,0 +1,41 @@
+// StarryImage proto
+//    Author: neptunewang <neptunewang@hotmail.com>
+//    Create date  :  07/16/2020
+//    Last Modified:  07/16/2020
+//
+// To compile this in current folder:
+//       1. install protoc, see <https://developers.google.com/protocol-buffers/docs/pythontutorial>
+//       2. protoc --python_out=./ task_common.proto
+
+syntax = "proto2";
+
+package starryImage;
+
+message TaskCommon {
+
+    enum ImageType {
+        JPG = 1;
+        PNG = 2;
+    }
+
+    message Image {
+        required ImageType type = 1;
+        required bytes image = 2;
+    }
+
+    enum Status {
+        New = 1;
+        Processing = 2;
+        ProcessFail = 3;
+        Success = 4;
+        Fail = 5;
+    }
+
+    required string taskId = 1;
+    required string modelSelect = 2;
+    required int64 createdTime = 3;
+    optional int64 processingTime = 4;
+    required Image image= 5;
+    optional Image transImage = 6;
+    required Status status = 7;
+}
