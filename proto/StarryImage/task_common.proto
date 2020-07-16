@@ -1,0 +1,47 @@
+// StarryImage proto
+//    Author: neptunewang <neptunewang@hotmail.com>
+//    Create date  :  07/16/2020
+//    Last Modified:  07/16/2020
+//
+// To compile this in current folder:
+//       1. install protoc, see <https://developers.google.com/protocol-buffers/docs/pythontutorial>
+//       2. protoc --python_out=./ task_common.proto
+
+syntax = "proto2";
+
+package starryImage;
+
+enum ModelOption {
+    Candy = 1;
+    Cubist = 2;
+    Denoised_Starry = 3;
+    Feathers = 4;
+    Mosaic = 5;
+    Painting = 6;
+    Picasso = 7;
+    Scream = 8;
+    Udnie = 9;
+    Wave = 10;
+}
+
+message Image {
+    enum ImageType {
+        JPG = 1;
+        PNG = 2;
+    }
+    required ImageType type = 1;
+    required bytes image = 2;
+}
+
+// StarryImage Post Request
+message StarryPost {
+    required string taskId = 1;
+    required ModelOption modelSelect = 2;
+    required Image image= 3;
+}
+
+// WebService StarryImage return Post Request
+message WebStarryPost {
+    required string taskId = 1;
+    required Image image= 2;
+}
