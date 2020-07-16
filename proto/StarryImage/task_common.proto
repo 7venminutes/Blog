@@ -11,6 +11,7 @@ syntax = "proto2";
 
 package starryImage;
 
+enum ModelOption {
     Candy = 1;
     Cubist = 2;
     Denoised_Starry = 3;
