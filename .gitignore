@@ -6,7 +6,7 @@
 */.idea/
 
 # js
-/static/
+static/
 
 # django生成的版本控制文件夹
 */migrations/

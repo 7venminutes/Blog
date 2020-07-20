@@ -125,4 +125,5 @@ STATICFILES_DIRS = [
     ("js", os.path.join(BASE_DIR, "static/js")),
     ("webuploader", os.path.join(BASE_DIR, "static/webuploader")),
     ("assets", os.path.join(BASE_DIR, "static/assets")),
+    ("image", os.path.join(BASE_DIR, "static/image")),
 ]
