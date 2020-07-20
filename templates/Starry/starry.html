@@ -3,12 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <title>7venminutes-Starry</title>
+    {% load staticfiles %}
+    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet"/>
+    <!-- FONT AWESOME STYLE  -->
+    <link href="{% static 'css/font-awesome.css' %}" rel="stylesheet"/>
+    <!-- CUSTOM STYLE  -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet"/>
+    <!-- easyui -->
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/icon.css'%}>
+    <link type="text/css" rel="stylesheet" href={% static 'easyui/themes/material-teal/easyui.css'%}>
+    <!-- webuploader -->
+        <link rel="stylesheet" type="text/css" href={% static "webuploader/webuploader.css" %}>
+<!--手动添加样式，修复webuploader中picker无法点击的bug-->
+<style>
+    #picker div:nth-child(2){width:100%!important;height:100%!important;}
+</style>
 </head>
-<body>
-    狂拽酷炫吊炸天的图片风格迁移服务
-    <br>
-    即将开放测试
-    <br>
-    <a href="https://7venminutes.com/index.php/about">点击申请测试资格</a>
+<body class="easyui-layout">
+    <div data-options="region:'west',title:'7venminutes-Starry', split:true" style="width: 20%">
+        <div class="easyui-accordion" data-options="fit:true">
+            <div title="帮助" style="overflow:auto;padding:5px; background-color: #6f6a6a">
+		        <h3 style="color:#0099FF;">系统支持的功能</h3>
+
+            </div>
+            <div title="账号" data-options="selected:true" style="padding: 10px; background-color: #6f6a6a">
+                <a class="easyui-linkbutton" style="width:100%; background-color: rgba(144,50,50,0.91); color: #e3e0e0">个人资料</a>
+                <br>
+                <a class="easyui-linkbutton" style="width:100%; background-color: rgba(44,62,135,0.91); color: #e3e0e0">会员激活码</a>
+                <br>
+                <a href="/filescube/logout/" class="easyui-linkbutton" style="width:100%; background-color: rgba(144,50,50,0.91);color: #e3e0e0">
+                    退出登录
+                </a>
+                <br>
+            </div>
+            <div title="设置" style="padding: 10px; background-color: #6f6a6a">
+                <div style="width:100%">
+                    <a class="easyui-linkbutton" style="width:80%; background-color: rgba(44,62,135,0.91); color: #e3e0e0">
+                        省流量模式
+                    </a>
+                    <input class="easyui-checkbox" value="read" id="read">
+                </div>
+            </div> <!--设置栏div结束-->
+        </div><!--左侧侧边栏菜单结束-->
+    </div>
+    <div data-options="region:'center'">
+        <div id="bottom_hint_window_tab" class="easyui-tabs" data-options="fit:true, tabPosition: 'bottom'">
+            <div title="概览" style="padding:20px;display:none;">
+                <div style="width: 600px">
+                        <h4>选择迁移风格</h4>
+                    <select class="easyui-combobox" data-options="editable:false" id="new_access_opt">
+                        <option>denoised-starry</option>
+                        <option>scream</option>
+                        <option>cubist</option>
+                        <option>wave</option>
+                        <option>feathers</option>
+                        <option>mosaic</option>
+                        <option>udnie</option>
+                        <option>painting</option>
+                    </select>
+                    <table>
+                        <tr>
+                            <td style="width: 15%">
+                                <img width="100%" src="{% static 'image/demo_original_img.jpg'%}" alt="原图片">
+                            </td>
+                            <td style="width: 30%;">
+                                <!--=====不知道怎么把图片居中，先用这种愚蠢的方式弄一下=====-->
+                                <a class="easyui-linkbutton" style="width: 30%"></a>
+                                <img style="width: 30%;" src="{% static 'image/style/cubist.jpg' %}" alt="cubist风格">
+                                <a class="easyui-linkbutton" style="width: 30%"></a>
+                                <div class="datagrid-toolbar"></div>
+                            </td>
+                            <td style="width: 15%">
+                                <img width="100%" src="{% static 'image/demo_cubist_result.png'%}" alt="处理过后的图片">
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="datagrid-toolbar"></div>
+
+                    <h4>上传图片</h4>
+                    <div id="progress" class="progress" style="width:80%;">
+                        <div class="progress-bar progress-bar-striped active" role="progressbar" style="width:0%;">
+                        </div>
+                    </div>
+                    <div id="picker">点此选择上传图片</div>
+
+                    <div class="datagrid-toolbar"></div>
+                    <h4>迁移结果展示
+                    </h4>
+                </div>
+            </div>
+            <div title="历史记录" style="padding:20px;display:none;">
+            </div>
+        </div>
+    </div>
 </body>
 </html>
+
+<script type="text/javascript" src={% static 'easyui/jquery.min.js'%}></script>
+<script type="text/javascript" src={% static 'easyui/jquery.easyui.min.js'%}></script>
+    <script src={% static "webuploader/webuploader.min.js" %}></script>
+<script>
+    var fileMd5;
+    var file_path = 'hfs/test/'
+    $(document).ready(function() {
+        let progress_bar = $('.progress-bar');
+        var task_id = WebUploader.Base.guid(); // 产生文件唯一标识符task_id
+
+        bigFileUploader = WebUploader.create({
+            swf: './static/webuploader/Uploader.swf',
+            server: '/filescube/tools/upload_part/', // 上传分片地址
+            pick: '#picker',
+            auto: true,
+            chunked: true,
+            chunkSize: 20 * 1024 * 1024,
+            chunkRetry: 3,
+            threads: 4,
+            duplicate: true,
+            formData: { // 上传分片的http请求中一同携带的数据
+                mode: 0,
+                task_id: task_id,
+                file_path: file_path,
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+            },
+        });
+        bigFileUploader.on('beforeFileQueued', function() { // 开始上传时，调用该方法
+            let have_access = false;
+            $.ajax({
+                type : "POST",
+                url : "/filescube/tools/upload/check/",
+                async: false,
+                data : {
+                    file_path: file_path,
+                    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                },
+                dataType : "json",
+                success : function(response) {
+                    have_access = response['haveAccess']
+                }
+            });
+            if(!have_access){
+                alert('您没有权限向该路径下传输文件');
+            }
+            return have_access;
+        });
+        bigFileUploader.on('fileQueued', function(file){
+            //alert('file_already_queued');
+            bigFileUploader.upload(file);
+        });
+        bigFileUploader.on('startUpload', function() { // 开始上传时，调用该方法
+            progress_bar.css('width', '0%');
+            progress_bar.text('0%');
+            progress_bar.removeClass('progress-bar-danger');
+            progress_bar.removeClass('progress-bar-success');
+            progress_bar.addClass('active progress-bar-striped');
+        });
+
+        bigFileUploader.on('uploadProgress', function(file, percentage) { // 一个分片上传成功后，调用该方法
+            progress_bar.css('width', percentage * 100 - 1 + '%');
+            progress_bar.text(Math.floor(percentage * 100 - 1) + '%' + file.source['name']);
+        });
+
+        bigFileUploader.on('uploadSuccess', function(file) { // 整个文件的所有分片都上传成功后，调用该方法
+            var data = {
+                'task_id': task_id,
+                'filename': file.source['name'],
+                'file_path': file_path,
+                'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val(),
+            };
+            $.get('/filescube/tools/upload_success', data);
+            progress_bar.css('width', '100%');
+            progress_bar.text('100%');
+            progress_bar.addClass('progress-bar-success');
+            progress_bar.text(file.source['name']+'上传完成');
+            display_file_list(file_path);
+        });
+
+        bigFileUploader.on('uploadError', function(file) { // 上传过程中发生异常，调用该方法
+            progress_bar.css('width', '100%');
+            progress_bar.text('100%');
+            progress_bar.addClass('progress-bar-danger');
+            progress_bar.text(file.source['name']+'上传失败');
+        });
+
+        bigFileUploader.on('uploadComplete', function(file) { // 上传结束，无论文件最终是否上传成功，该方法都会被调用
+            progress_bar.removeClass('active progress-bar-striped');
+        });
+        progress_bar.css('width', '100%');
+        progress_bar.text('您还未选择待上传的文件');
+
+
+    });
+</script>
