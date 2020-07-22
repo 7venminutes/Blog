@@ -4,12 +4,13 @@ Author: Baixu
 Date: 2020/06/02
 Desc: 对数据表volume_mapping的相关操作
 """
+import logging
 import sys
 import pymysql
 
 if '../../' not in sys.path:
     sys.path.append('../../')
-from const_var import DB_NAME, DATABASE_HOST, DATABASE_PORT, DATABASE_USER, DATABASE_PWD
+from const_var import FileCube_DbConfig, DEBUG_MODE
 from common import args_filter
 
 
@@ -25,8 +26,12 @@ def create_volume_mapping():
     # volume_path 为主键， actual_path 和 host_address 组合起来是唯一的
     :return: void
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE volume_mapping
                 (volume_path VARCHAR(512) PRIMARY KEY NOT NULL,
@@ -47,30 +52,33 @@ def get_volume_mapping(*args):
     卷映射关系表的列：volume_path, size, actual_path, path_type, is_localhost, host_address
     如 get_volume_mapping('volume_path', 'actual_path', 'path_type')
     :param args: 'volume_path','size','actual_path','path_type','is_localhost','host_address'中的一种或多种
-    :return: {'state':...,'details':...} state = 'failed' or 'success'; details为报错信息或字典的列表
+    :return: state, details state = 'failed' or 'success'; details为报错信息或字典的列表
     """
     # 记录数据表中所有的列的名称
     column_type = ['volume_path', 'size', 'actual_path',
                    'path_type', 'is_localhost', 'host_address']
     selected_columns = args_filter.filter_args(column_type, *args)  # 字符串数组，参数指定的列名称
-    for motherfucker in selected_columns:
-        print(motherfucker)
-    sql_str = ""  # sql_str 为将送入SQL语句中拼接查询的字符串
+
+    if DEBUG_MODE:
+        logging.debug('get_volume_mapping()函数接收到的有效参数：')
+        for column in selected_columns:
+            logging.debug('\t%s', column)
+        logging.debug('------')
+
+    sql_str = ",".join(selected_columns)  # sql_str 为将送入SQL语句中拼接查询的字符串
     query_result = []  # query_result 为按照参数要求查询出的数据，为字典的列表
-    result = {'state': 'unknown', 'details': 'unknown'}  # 待返回的数据
-    for column in selected_columns:
-        sql_str += (',' + column)
-    if len(selected_columns) > 0:
-        sql_str = sql_str[1:]  # 去掉第一个逗号
-    else:
-        result['state'] = 'failed'
-        result['details'] = "无有效参数传入，请传入volume_mapping的列名"
-    if result['state'] == 'failed':
-        pass
+
+    if len(selected_columns) <= 0:
+        state = 'failed'
+        details = "无有效参数传入，请传入volume_mapping的列名"
     else:
         # -------------连接数据库开始查询--------------------
-        conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                               passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+        conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                               port=FileCube_DbConfig['port'],
+                               user=FileCube_DbConfig['user'],
+                               passwd=FileCube_DbConfig['pwd'],
+                               db=FileCube_DbConfig['db_name'],
+                               charset='utf8')
         cursor = conn.cursor()
         cursor.execute("SELECT " + sql_str + " FROM volume_mapping")
         raw_result = cursor.fetchall()
@@ -80,6 +88,6 @@ def get_volume_mapping(*args):
                 new_tuple_for_result[selected_columns[i]] = row[i]
             query_result.append(new_tuple_for_result)
         conn.close()
-        result['state'] = 'success'
-        result['details'] = query_result
-    return result
+        state = 'success'
+        details = query_result
+    return state, details

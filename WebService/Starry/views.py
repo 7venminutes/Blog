@@ -42,9 +42,7 @@ def get_transformed_image_by_task_id(request):
     else:
         if task_status == 'success':
             state = task_status
-            # 返回任务对应的图片地址
-            # TODO baixu【2020-07-21】 读数据库获得图片地址
-            pass
+            _, image_dir = transform_task.get_transformed_image_path(request.POST['task_id'])
         elif task_status == 'failed' or task_status == 'processing':
             state = task_status
             image_dir = ''
@@ -53,4 +51,7 @@ def get_transformed_image_by_task_id(request):
             state = task_status
             image_dir = ''
         else:
+            state = 'unknown'
+            image_dir = ''
             logging.error('unknown task_status type: %s', task_status, exc_info=True)
+    return HttpResponse(json.dumps({'state': state, 'image_dir': image_dir}))

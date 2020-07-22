@@ -37,7 +37,7 @@ def create_table_transform_task():
                 task_finish_time DATETIME,
                 original_image_path VARCHAR(128) NOT NULL,
                 transformed_image_path VARCHAR(128),
-                image_type ENUM('png', 'jpg') NOT NULL,
+                image_type ENUM('PNG', 'JPG') NOT NULL,
                 selected_style VARCHAR(20) NOT NULL,
                 
                 PRIMARY KEY (task_id)

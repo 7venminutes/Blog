@@ -29,29 +29,29 @@ class TestAddressTransfer(unittest.TestCase):
         """
         测试 address_transfer.resolve_path_to_actual_path 的功能
         """
-        self.assertEqual(address_transfer.resolve_path_to_actual_path('zhfs/A/yanbx/lib')['actual_path'],
+        self.assertEqual(address_transfer.resolve_path_to_actual_path('zhfs/A/yanbx/lib')[1],
                          '/home/ubuntu/hhhh/yanbx/lib')
-        self.assertEqual(address_transfer.resolve_path_to_actual_path('zhfs/A/B/heiheihei')['actual_path'],
+        self.assertEqual(address_transfer.resolve_path_to_actual_path('zhfs/A/B/heiheihei')[1],
                          '/home/ubuntu/HHHH/heiheihei')
-        self.assertEqual(address_transfer.resolve_path_to_actual_path('zhfs/wanghb/novel/')['actual_path'],
+        self.assertEqual(address_transfer.resolve_path_to_actual_path('zhfs/wanghb/novel/')[1],
                          'E:\\zhfs\\wanghb\\novel\\')
-        self.assertFalse(address_transfer.resolve_path_to_actual_path('blank')['state'])
-        self.assertEqual(address_transfer.resolve_path_to_actual_path('blank')['actual_path'],
+        self.assertFalse(address_transfer.resolve_path_to_actual_path('blank')[0])
+        self.assertEqual(address_transfer.resolve_path_to_actual_path('blank')[1],
                          'blank')
 
     def test_actual_path_transfer_to_path(self):
         """
         测试 address_transfer.resolve_actual_path_to_path 的功能
         """
-        self.assertEqual(address_transfer.resolve_actual_path_to_path('E:\\zhfs\\wanghb\\novel\\')['path_in_hfs'],
+        self.assertEqual(address_transfer.resolve_actual_path_to_path('E:\\zhfs\\wanghb\\novel\\')[1],
                          'zhfs/wanghb/novel/')
-        self.assertEqual(address_transfer.resolve_actual_path_to_path('/home/ubuntu/HHHH/heiheihei')['path_in_hfs'],
+        self.assertEqual(address_transfer.resolve_actual_path_to_path('/home/ubuntu/HHHH/heiheihei')[1],
                          'zhfs/A/B/heiheihei')
-        self.assertEqual(address_transfer.resolve_actual_path_to_path('/home/ubuntu/hhhh/yanbx/lib')['path_in_hfs'],
+        self.assertEqual(address_transfer.resolve_actual_path_to_path('/home/ubuntu/hhhh/yanbx/lib')[1],
                          'zhfs/A/yanbx/lib')
-        self.assertEqual(address_transfer.resolve_actual_path_to_path('blank')['path_in_hfs'],
+        self.assertEqual(address_transfer.resolve_actual_path_to_path('blank')[1],
                          'blank')
-        self.assertFalse(address_transfer.resolve_actual_path_to_path('blank')['state'])
+        self.assertFalse(address_transfer.resolve_actual_path_to_path('blank')[0])
 
 
 if __name__ == '__main__':

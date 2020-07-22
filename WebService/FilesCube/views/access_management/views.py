@@ -5,6 +5,7 @@ Date: 2020-06-08
 Desc: 权限管理模块的视图层
 """
 import json
+import logging
 import os
 import traceback
 
@@ -13,7 +14,7 @@ import pymysql
 
 from common.key_checker import check_if_have_this_key
 from common import address_helper, address_transfer
-from const_var import DB_NAME, DATABASE_USER, DATABASE_PWD, DATABASE_PORT, DATABASE_HOST
+from const_var import FileCube_DbConfig
 from database.db_helpers import table_access, db_helper, table_user
 from WebService.FilesCube.FilesCube_views import validate_identity, who_is_sending_request
 from WebService.FilesCube.views.access_management.access_query import get_access_under_path
@@ -28,7 +29,7 @@ def access_manage(request):
     """
     # 身份验证，已登陆用户才能访问该界面
     if not validate_identity(request):
-        return HttpResponseRedirect('/filescube/index/')
+        return HttpResponseRedirect('/index/')
     user_list = table_user.get_all_user_info()
     if not check_if_have_this_key(request.session, 'username'):
         raise KeyError('session中缺少username字段')
@@ -37,7 +38,7 @@ def access_manage(request):
     for access_record in access_list:
         if access_record['admin']:
             admin_access_list.append(access_record)
-    return render(request, 'FilesCube/access_management.html',
+    return render(request, 'access_management.html',
                   {'request': request, 'user_list': user_list, 'admin_access_list': admin_access_list})
 
 
@@ -60,8 +61,7 @@ def add_access_record(request):
         admin = request.POST['admin'] == 'true'
         opt = str(request.POST['opt'])
     except KeyError as error_msg:
-        print(error_msg)
-        print(traceback.format_exc())
+        logging.error(error_msg, exc_info=True)
         return HttpResponse(json.dumps({'state': 'failed', 'details': 'POST参数错误'}))
     if not validate_identity(request):
         state = 'failed'
@@ -79,11 +79,10 @@ def add_access_record(request):
         elif not table_user.if_user_exists(user_id):
             state = 'failed'
             details = '请检查新增权限记录中的用户名，用户不存在'
-        elif not address_transfer.resolve_path_to_actual_path(path)['state']:
+        elif not address_transfer.resolve_path_to_actual_path(path)[0]:
             state = 'failed'
             details = '您不能为不存在的路径赋予权限'
         else:
-            print(read)
             table_access.modify_some_access(user_id, path, read,
                                             new, download, remove, modify, admin, opt)
             state = 'success'
@@ -190,13 +189,14 @@ def clean_up_redundant_records(request):
         access_records_to_remove = []  # 记录待删除的数据
         for i in range(len(access_list)):
             record = access_list[i]
+            path_can_be_transferred, actual_path = address_transfer.resolve_path_to_actual_path(record['path'])
             if not table_user.if_user_exists(record['ID']):
                 # 清理用户ID已不存在的权限记录
                 access_records_to_remove.append(record)
-            elif not address_transfer.resolve_path_to_actual_path(record['path'])['state']:
+            elif not path_can_be_transferred:
                 # 清理已经无法解析的权限记录
                 access_records_to_remove.append(record)
-            elif not os.path.exists(address_transfer.resolve_path_to_actual_path(record['path'])['actual_path']):
+            elif not os.path.exists(actual_path):
                 # 清理路径已不存在的权限记录
                 access_records_to_remove.append(record)
             else:
@@ -218,8 +218,12 @@ def clean_up_redundant_records(request):
                             access_records_to_remove.append(record)
         # 待删除的数据记录完毕，存储在access_records_to_remove中，可能会有重复项
         # 开始删除
-        conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                               passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+        conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                               port=FileCube_DbConfig['port'],
+                               user=FileCube_DbConfig['user'],
+                               passwd=FileCube_DbConfig['pwd'],
+                               db=FileCube_DbConfig['db_name'],
+                               charset='utf8')
         cursor = conn.cursor()
         for record_to_remove in access_records_to_remove:
             cursor.execute("DELETE FROM Access_for_path WHERE path='"+str(record_to_remove['path'])+"'")
