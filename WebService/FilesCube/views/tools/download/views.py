@@ -4,22 +4,19 @@ Author: Baixu
 Date: 2020-06-29
 Desc: 下载相关的处理函数（文件分片下载）
 """
+import logging
 import mimetypes
 import os
-import posixpath
 import re
 import stat
 
 from django.http import HttpResponse, FileResponse, HttpResponseNotModified, Http404
-from django.shortcuts import render
-
 # 基于django.views.static.serve实现，支持大文件的断点续传（暂停/继续下载）
-from django.utils._os import safe_join
 from django.utils.http import http_date
 from django.views.static import was_modified_since
 
-from database.db_helpers import db_helper, table_access
 from common import address_transfer
+from database.db_helpers import db_helper, table_access
 
 
 def download(request, path):
@@ -42,21 +39,23 @@ def download(request, path):
     if not db_helper.lookup_access_in_the_list(path, 'download', access_list):
         return HttpResponse('no download access to resource', status=403)
     else:
-        tmp_actual_path = address_transfer.resolve_path_to_actual_path(path)
-        if tmp_actual_path['state'] and not os.path.exists(tmp_actual_path['actual_path']):
+        transfer_state, actual_path = address_transfer.resolve_path_to_actual_path
+        if transfer_state and not os.path.exists(actual_path):
             raise Http404('"%(path)s" does not exist' % {'path': path})
-        elif not tmp_actual_path['state']:
+        elif not transfer_state:
             raise Http404('"%(path)s" can not be resolved properly' % {'path': path})
-        elif os.path.isdir(tmp_actual_path['actual_path']):
+        elif os.path.isdir(actual_path):
             return HttpResponse('server does not support downloading a folder', status=403)
         else:
             # 一切均正常，开始下载
-            return get_file_response(request, tmp_actual_path['actual_path'])
+            return get_file_response(request, actual_path)
 
 
-def get_file_response(request, path):
+def get_file_response(request, path, opt='download'):
     """
     返回下载文件流, 此处path为服务器上文件实际存储的位置
+    opt == ‘download’:   下载 content-type = ‘application/octet-stream’
+    opt == 'display': 展示文件 content-type = 文件本身的 mimetype
     """
     # 注释原因， 没看懂原代码是否有其他的安全考虑 Baixu 2020-07-08
     # # 防止目录遍历漏洞
@@ -75,14 +74,21 @@ def get_file_response(request, path):
                               stat_obj.st_mtime, stat_obj.st_size):
         return HttpResponseNotModified()
 
-    # 获取文件的content_type
     content_type, encoding = mimetypes.guess_type(full_path)
-    # content_type = content_type or 'application/octet-stream'
-    content_type = 'application/octet-stream'
+    # 获取文件的content_type
+    if opt == 'download':
+        content_type = 'application/octet-stream'
+    elif opt == 'display':
+        content_type = content_type
+    else:
+        raise ValueError("parameter 'opt' in function get_file_response "
+                         "can only be 'download' or 'display'")
 
     # 计算读取文件的起始位置
     start_bytes = re.search(r'bytes=(\d+)-', request.META.get('HTTP_RANGE', ''), re.S)
-    print(request.META.get('HTTP_RANGE', ''))
+
+    logging.info(request.META.get('HTTP_RANGE', ''))
+
     start_bytes = int(start_bytes.group(1)) if start_bytes else 0
 
     # 打开文件并移动下标到起始位置，客户端点击继续下载时，从上次断开的点继续读取

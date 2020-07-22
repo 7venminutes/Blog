@@ -11,7 +11,7 @@ import pymysql
 if '../../' not in sys.path:
     sys.path.append('../../')
 
-from const_var import DB_NAME, DATABASE_USER, DATABASE_PWD, DATABASE_PORT, DATABASE_HOST
+from const_var import FileCube_DbConfig
 
 
 def modify_access(user_id, path, opt='recursive', access='all_TRUE'):
@@ -23,8 +23,12 @@ def modify_access(user_id, path, opt='recursive', access='all_TRUE'):
     :param access: 'all_True' or 'all_False'
     :return: null
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER, passwd=DATABASE_PWD,
-                           db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     user_id = str(user_id)
     path = str(path)
@@ -66,8 +70,12 @@ def remove_access_by_id(user_id):
     :return: {'state':...,'details':...}
     """
     try:
-        conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                               passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+        conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                               port=FileCube_DbConfig['port'],
+                               user=FileCube_DbConfig['user'],
+                               passwd=FileCube_DbConfig['pwd'],
+                               db=FileCube_DbConfig['db_name'],
+                               charset='utf8')
         cursor = conn.cursor()
         user_id = str(user_id)
         cursor.execute("DELETE FROM Access_for_path WHERE ID='" + user_id + "';")
@@ -95,8 +103,12 @@ def modify_some_access(user_id, path, read, new, download, remove, modify, admin
     opt = 'recursive' or 'current'
     :return: null
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     user_id = str(user_id)
     path = str(path)
@@ -134,8 +146,12 @@ def get_access_list():
                 'ID':...}] 或报错信息
     """
     access_list = []
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     cursor.execute("SELECT path, `read`, new, download, remove, modify,"
                    " admin, opt, ID FROM Access_for_path")
@@ -155,8 +171,12 @@ def get_access_list_by_id(user_id):
     :return: [{'path':...,'read':...,'new':...,'download':...,
     'remove':...,'modify':...,'admin':...,'opt':...}]
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     user_id = str(user_id)
     cursor.execute("SELECT path, `read`, new, download, remove, modify, admin, opt "
@@ -177,8 +197,12 @@ def get_access_list_excluding_id(user_id):
     :return: [{'user_id':...,'path':...,'read':...,'new':...,'download':...,
     'remove':...,'modify':...,'admin':...,'opt':...}]
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     user_id = str(user_id)
     cursor.execute("SELECT path, `read`, new, download, remove, modify, admin, opt, ID "

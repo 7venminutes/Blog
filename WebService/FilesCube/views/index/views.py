@@ -6,9 +6,9 @@ Desc: 用户管理视图层，处理user_management.html发送过来的与用户
 TODO[baixu]: 新建用户和删除用户的业务逻辑在设计上有不妥之处
 """
 import json
+import logging
 import os
 import sys
-import traceback
 
 from django.http import HttpResponse, HttpResponseRedirect, FileResponse
 from django.shortcuts import render
@@ -20,9 +20,10 @@ import qrcode
 if '../../' not in sys.path:
     sys.path.append('../../')
 
-from const_var import DB_NAME, DATABASE_PWD, DATABASE_USER, DATABASE_PORT, DATABASE_HOST
+from const_var import FileCube_DbConfig, DEBUG_MODE
 from common import address_helper, address_transfer, key_checker
-from database.db_helpers import table_access, table_file_tree, db_helper
+from database.db_helpers import table_access, db_helper
+from file_storage.get_file_size import get_file_size
 from WebService.FilesCube import operation
 from WebService.FilesCube.FilesCube_views import validate_identity
 
@@ -35,7 +36,7 @@ def homepage(request):
     """
     err_info = []
     if not validate_identity(request):
-        return HttpResponseRedirect('/filescube/authentication/')
+        return HttpResponseRedirect('/authentication/')
     else:
         request.session['access_list'] = table_access.get_access_list_by_id(request.session['username'])
     try:
@@ -46,9 +47,11 @@ def homepage(request):
             data_dir = path
         if request.method == 'POST':
             if 'qr-code' in request.POST:
-                print('-------生成二维码-----')
                 url = 'http://' + request.POST['downloadurl']
-                # url = request.get_host() + "/index/?download_filename=" + filename +"&download_path=" + data_dir
+
+                if DEBUG_MODE:
+                    logging.debug('-----生成二维码-----\nurl: %s', url)
+
                 img = qrcode.make(url)
                 buf = BytesIO()
                 img.save(buf)
@@ -56,10 +59,10 @@ def homepage(request):
                 response = HttpResponse(image_stream, content_type="image/png")
                 return response
 
-        return render(request, 'FilesCube/index.html', locals())
+        return render(request, 'index.html', locals())
     except Exception as error:
-        print(error)
-        return render(request, 'FilesCube/index.html', locals())
+        logging.error(error, exc_info=True)
+        return render(request, 'index.html', locals())
 
 
 def get_file_list_under_dir(request):
@@ -85,19 +88,17 @@ def get_file_list_under_dir(request):
             pass
 
     if have_access:
-        actual_dir = address_transfer.resolve_path_to_actual_path(data_dir)['actual_path']
+        _, actual_dir = address_transfer.resolve_path_to_actual_path(data_dir)
         if not os.path.exists(actual_dir):
             data_list = {'have_access': True, 'dir_exist': False, 'file_list': file_list}
         else:
             filename_list = os.listdir(actual_dir)
-            # print(actual_dir)
             for filename in filename_list:
-                # print(actual_dir + filename)
                 if os.path.isdir(actual_dir + filename):
                     file_list.append({'file_type': 'dir', 'file_name': filename,
                                       'file_dir': data_dir + filename, 'file_size': '-'})
                 else:
-                    size = table_file_tree.get_file_size(actual_dir + filename)
+                    size = get_file_size(actual_dir + filename)
                     file_list.append({'file_type': 'file', 'file_name': filename,
                                       'file_dir': data_dir + filename, 'file_size': size})
             data_list = {'have_access': True, 'dir_exist': True, 'file_list': file_list}
@@ -138,7 +139,7 @@ def back_to_parent_dir(request):
                 pass
 
         if have_access:
-            actual_dir = address_transfer.resolve_path_to_actual_path(new_current_path)['actual_path']
+            _, actual_dir = address_transfer.resolve_path_to_actual_path(new_current_path)
             if os.path.exists(actual_dir):
                 filename_list = os.listdir(actual_dir)
                 for filename in filename_list:
@@ -146,7 +147,7 @@ def back_to_parent_dir(request):
                         file_list.append({'file_type': 'dir', 'file_name': filename,
                                           'file_dir': new_current_path + filename, 'file_size': '-'})
                     else:
-                        size = table_file_tree.get_file_size(actual_dir + filename)
+                        size = get_file_size(actual_dir + filename)
                         file_list.append({'file_type': 'file', 'file_name': filename,
                                           'file_dir': new_current_path + filename, 'file_size': size})
         # -------------------------------------------------------------------------------------------------------
@@ -169,33 +170,36 @@ def remove_file(request):
     state = 'failed' or 'success'
     remove_file_id: 被删除目录项的ID
     """
-    print("remove_file ——views.py 11111111111111")
+    if DEBUG_MODE:
+        logging.debug("remove_file ——views/index/views.py")
     try:
         remove_path = request.POST['remove_path']
-        # print(remove_path)
         remove_name = request.POST['remove_name']
         remove_file_type = request.POST['remove_file_type']
         remove_file_id = -1
     except Exception as error:
-        print(error)
-        print("POST中某参数为空 ——views.py remove_file(request)")
+        logging.error(error, exc_info=True)
+        logging.warning("POST中某参数为空 ——views/index/views.py remove_file(request)")
         return {'state': 'failed', 'details': 'session失效'}
     if not db_helper.lookup_access_in_the_list(remove_path, 'remove', request.session['access']):
-        print("无删除权限 ——views.py remove_file(request)")
+        logging.info("无删除权限 ——views.py remove_file(request)\n"
+                     "用户名：%s, 尝试删除的文件或文件夹： %s"
+                     , request.session['username']
+                     , remove_path)
         return HttpResponse(json.dumps({'state': 'failed', 'details': '无权限'}))
-    remove_dir = ''
+
     if remove_file_type == 'dir':
         remove_dir = remove_path + remove_name + '/'
     else:
         remove_dir = remove_path + remove_name
-    temp_resolve_result = address_transfer.resolve_path_to_actual_path(remove_dir)
-    if not temp_resolve_result['state'] or not os.path.exists(temp_resolve_result['actual_path']):
-        print("待删除的路径不存在 ——views.py remove_file(request)")
-        print(temp_resolve_result)
+    if_path_can_be_resolved, actual_remove_path = address_transfer.resolve_path_to_actual_path(remove_dir)
+    if not if_path_can_be_resolved or not os.path.exists(actual_remove_path):
+        logging.warning("待删除的路径不存在 ——views.py remove_file(request)\n"
+                        "\t待删除路径： %s"
+                        , remove_path)
         return HttpResponse(json.dumps({'state': 'failed', 'details': '文件不存在'}))
     else:
         operation.remove_file(remove_dir, request.session['username'])
-        print("删完了")
         return HttpResponse(json.dumps({'state': 'success', 'remove_file_id': str(remove_file_id)}))
 
 
@@ -209,7 +213,9 @@ def rename_or_move(request):
     state = 'failed' or 'success'
     details为移动成功后的文件信息{'file_id':...,'new_parent_id':...}或失败后的报错信息
     """
-    print("移动或重命名文件")
+    if DEBUG_MODE:
+        logging.debug("移动或重命名文件")
+
     file_type = str(request.POST['file_type'])
     curr_path = str(request.POST['curr_path'])
     curr_name = str(request.POST['curr_name'])
@@ -225,8 +231,12 @@ def rename_or_move(request):
         if message['state'] == 'failed':
             return HttpResponse(json.dumps({'state': 'failed', 'details': message['details']}))
         else:
-            conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER, passwd=DATABASE_PWD,
-                                   db=DB_NAME, charset='utf8')
+            conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                                   port=FileCube_DbConfig['port'],
+                                   user=FileCube_DbConfig['user'],
+                                   passwd=FileCube_DbConfig['pwd'],
+                                   db=FileCube_DbConfig['db_name'],
+                                   charset='utf8')
             cursor = conn.cursor()
             append_slash = ""
             file_id = 0
@@ -256,14 +266,19 @@ def make_dir(request):
     details为成功后的文件信息{'file_id':...,'file_name':...,'file_dir':...,'new_parent_id':...}
         或失败后的报错信息
     """
-    print("开始新建文件夹")
     mkdir_path = str(request.POST['mkdir_path'])
     mkdir_name = str(request.POST['mkdir_name'])
-    print("路径： " + mkdir_path)
-    print("文件名: " + mkdir_name)
+
+    if DEBUG_MODE:
+        logging.debug("开始新建文件夹(路径：%s, 文件名：%s)", mkdir_path, mkdir_name)
+
     if db_helper.lookup_access_in_the_list(mkdir_path, 'new', request.session['access']):
-        conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                               passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+        conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                               port=FileCube_DbConfig['port'],
+                               user=FileCube_DbConfig['user'],
+                               passwd=FileCube_DbConfig['pwd'],
+                               db=FileCube_DbConfig['db_name'],
+                               charset='utf8')
         cursor = conn.cursor()
         count = cursor.execute("SELECT * FROM file_tree WHERE dir='" + mkdir_path + mkdir_name + "/'")
         if count > 0:
@@ -272,16 +287,16 @@ def make_dir(request):
         else:
             result = operation.make_dir(mkdir_path, request.session['username'], mkdir_name)
             if result['state'] == 'failed':
-                print(result['details'])
+                logging.info(result['details'])
                 return HttpResponse(json.dumps({'state': 'failed', 'details': result['details']}))
             else:
-                result = result['details']
-                print(result)
+                logging.info(result['details'])
                 file_id = result['ID']
                 file_name = result['name']
                 file_dir = result['dir']
                 file_parent_id = result['parent_id']
-                print(json.dumps({'state': 'success',
+                if DEBUG_MODE:
+                    logging.debug(json.dumps({'state': 'success',
                                   'file_info': {'file_id': file_id, 'file_name': file_name,
                                                 'file_dir': file_dir, 'file_parent_id': file_parent_id}}))
                 conn.close()
@@ -308,12 +323,8 @@ def display_file_tree(request):
     file-dir 为目录项在hfs系统中所在的路径
     """
     try:
-        print(request.POST)
         request_id = request.POST.get('id', -1)
-        print('----------------------------')
-        print(str(request_id))
         if request_id != -1:
-            print(request_id)
             data_list = []
             '''
                         print(request_id)
@@ -355,5 +366,6 @@ def display_file_tree(request):
                                                  'file_dir': file_dir}})
     finally:
         pass
-    print(data_list)
+    if DEBUG_MODE:
+        logging.debug(data_list)
     return HttpResponse(json.dumps(data_list))

@@ -5,6 +5,7 @@ Date: 2020-06-04
 Desc: 视图层，一些工具。比如根据传入的参数生成二维码，把图像返回给前端。
 """
 import json
+import logging
 
 from django.http import HttpResponse
 from django.utils.six import BytesIO
@@ -13,7 +14,7 @@ import qrcode
 
 from common import address_helper, address_transfer
 from database.db_helpers import db_helper
-import WebService.FilesCube.FilesCube_views as hfs_sys_basic_funcs
+from WebService.FilesCube import FilesCube_views
 
 
 def generate_qr_code(request, data):
@@ -42,7 +43,7 @@ def preview_file_content(request):
     :return:HttpResponse(json.dumps(data))
     data = {'result': 'failed' or 'success', 'details': ’文件内容‘ or '报错信息‘}
     """
-    hfs_sys_basic_funcs.validate_identity(request)
+    FilesCube_views.validate_identity(request)
     file_dir = str(request.POST['file_dir'])
     # fixme [baixu] 2020-06-28 对file_dir的合法性进行验证处理
     have_access = db_helper.lookup_access_in_the_list(file_dir, 'read', request.session['access_list'])
@@ -50,15 +51,15 @@ def preview_file_content(request):
         result = 'failed'
         details = '权限不足、无法查看文件内容'
     else:
-        temp_path_transfer_result = address_transfer.resolve_path_to_actual_path(file_dir)
-        if not temp_path_transfer_result['state']:
+        transfer_state, actual_file_dir = address_transfer.resolve_path_to_actual_path(file_dir)
+        if not transfer_state:
             result = 'failed'
             details = '传入的路径无法解析'
-        elif not os.path.exists(temp_path_transfer_result['actual_path']):
+        elif not os.path.exists(actual_file_dir):
             result = 'failed'
             details = '所指定文件不存在'
         else:
-            filename = temp_path_transfer_result['actual_path']
+            filename = actual_file_dir
             try:
                 fp = open(filename, 'r', encoding='utf-8')
                 details = fp.read()
@@ -67,10 +68,10 @@ def preview_file_content(request):
             except IOError:
                 result = 'failed'
                 details = "文件打开失败，%s文件不存在" % filename
-            except Exception as e:
+            except Exception as error_msg:
                 result = 'failed'
                 details = '文件不支持预览、或其他未知错误'
-                print(e)
+                logging.error(error_msg, exc_info=True)
     return HttpResponse(json.dumps({'result': result, 'details': details}))
 
 
@@ -82,7 +83,7 @@ def save_txt_file(request):
     request.session
     :return: HttpResponse(json.dumps({'state': 'failed' or 'success', 'details'))
     """
-    hfs_sys_basic_funcs.validate_identity(request)
+    FilesCube_views.validate_identity(request)
     file_dir = str(request.POST['file_dir'])
     # fixme [baixu] 2020-06-28 对file_dir的合法性进行验证处理
     have_access = db_helper.lookup_access_in_the_list(file_dir, 'modify', request.session['access_list'])
@@ -90,26 +91,22 @@ def save_txt_file(request):
         state = 'failed'
         details = '权限不足、无法修改文件内容'
     else:
-        temp_path_transfer_result = address_transfer.resolve_path_to_actual_path(file_dir)
-        if not temp_path_transfer_result['state']:
+        transfer_state, actual_file_dir = address_transfer.resolve_path_to_actual_path(file_dir)
+        if not transfer_state:
             state = 'failed'
             details = '传入的路径无法解析'
-        elif not os.path.exists(temp_path_transfer_result['actual_path']):
+        elif not os.path.exists(actual_file_dir):
             state = 'failed'
             details = '所指定文件不存在'
         else:
             try:
-                file = open(temp_path_transfer_result['actual_path'], 'w', encoding='utf-8')
+                file = open(actual_file_dir, 'w', encoding='utf-8')
                 file.write(request.POST['file_content'])
-                print(file_dir)
-                print('--------------')
-                print(request.POST['file_content'])
                 file.close()
                 state = 'success'
                 details = '文件保存成功'
             except Exception as error_msg:
-                print(error_msg)
+                logging.error(error_msg, exc_info=True)
                 state = 'failed'
                 details = '未知错误，请联系管理员查看日志排查'
     return HttpResponse(json.dumps({'state': state, 'details': details}))
-

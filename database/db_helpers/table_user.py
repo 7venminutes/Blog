@@ -7,6 +7,7 @@ Desc: 与数据表USER有关的操作
 TODO[baixu] simplify functions
 TODO[baixu] L72 ~ L85 unfinished block
 """
+import logging
 import os
 import platform
 import sys
@@ -16,7 +17,7 @@ if '../../' not in sys.path:
     sys.path.append('../../')
 
 from common import address_helper, address_transfer
-from const_var import DB_NAME, DATABASE_USER, DATABASE_PWD, DATABASE_PORT, DATABASE_HOST
+from const_var import FileCube_DbConfig, DEBUG_MODE
 
 sys_str = platform.system()
 
@@ -26,8 +27,12 @@ def create_user():
     数据表USER的创建
     :return: null
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE USER
                 (ID VARCHAR(20) PRIMARY KEY NOT NULL,
@@ -45,14 +50,22 @@ def validation_for_login(user, pwd):
     :param pwd: 用户密码，字符串类型
     :return: {'result': BOOL类型, 'sys_admin': BOOL类型, 'root_dir': 字符串类型}
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
-    print(user + pwd)
+
+    if DEBUG_MODE:
+        logging.debug('validation_for_login(%s, %s) is called', str(user), str(pwd))
+
     cursor.execute("SELECT PASSWORD,sys_admin,root_dir from USER WHERE ID='" + str(user) + "'")
     query_result = cursor.fetchall()
     for row in query_result:
-        print(row)
+        if DEBUG_MODE:
+            logging.debug('another record to match: (\'password\',\'sys_admin\',\'root_dir\')(%s)', str(row))
         if pwd == row[0]:
             conn.close()
             return {'result': True, 'sys_admin': row[1], 'root_dir': row[2]}
@@ -75,7 +88,7 @@ def add_user(user_id, password, root_dir, is_sysadmin=False):
     if not root_dir.endswith('/'):
         raise ValueError(r'传入用来新建用户的用户根目录没有以/结尾')
 
-    actual_root_dir = address_transfer.resolve_path_to_actual_path(str(root_dir))['actual_path']
+    _, actual_root_dir = address_transfer.resolve_path_to_actual_path(str(root_dir))
     differ_num = 1  # 当用户根目录与操作系统上某一目录重复时，将该值添加到尾部
     actual_root_dir_temp = actual_root_dir[:-1]  # 去除了末尾的'/'的actual_root_dir
     root_dir_temp = root_dir[:-1]  # 去除了末尾的'/'的root_dir
@@ -84,15 +97,19 @@ def add_user(user_id, password, root_dir, is_sysadmin=False):
         root_dir = root_dir_temp + str(differ_num) + '/'
         differ_num += 1
 
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     try:
         if is_sysadmin:
             cursor.execute("INSERT INTO USER(ID, PASSWORD, root_dir, sys_admin) \
                VALUES ('" + str(user_id) + "','" + str(password) + "','" + str(root_dir) + "',TRUE)")
         else:
-            print('非系统管理员')
+            logging.debug('添加一个非系统管理员用户: %s', str(user_id))
             cursor.execute("INSERT INTO USER(ID, PASSWORD, root_dir, sys_admin) \
                VALUES ('" + str(user_id) + "','" + str(password) + "','" + str(root_dir) + "',FALSE)")
         cursor.execute("INSERT INTO Access_for_path(path, `read`, new, download, remove, modify, admin,"
@@ -103,7 +120,9 @@ def add_user(user_id, password, root_dir, is_sysadmin=False):
         state = 'success'
         details = '新建用户成功'
     except Exception as error:
-        print(error)
+        logging.error('尝试新建用户失败，用户名：%s，密码：%s，根目录：%s，是否为系统管理员：%s',
+                      str(user_id), str(password), str(root_dir), str(is_sysadmin))
+        logging.error(str(error), exc_info=True)
         state = 'failed'
         details = error
         conn.rollback()
@@ -121,8 +140,12 @@ def remove_user(user_id):
     """
     user_id = str(user_id)
     # TODO[baixu] 对user_id进行检查，防止SQL注入攻击
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER, passwd=DATABASE_PWD,
-                           db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     cursor.execute("DELETE FROM USER WHERE ID='" + user_id + "'")
     conn.commit()
@@ -144,7 +167,7 @@ def get_user_info(*args):
         if item in column_type:
             is_selected[item] = True
         else:
-            print("无效参数，数据表USER中没有此列： " + item)
+            logging.warning('get_user_info()收到了一个无效参数，数据表USER中没有此列： %s', str(item))
     # --------------------------------
     selected_column = []  # 字符串数组，参数指定的列名称
     sql_str = ""  # sql_str 为将送入SQL语句中拼接查询的字符串
@@ -160,10 +183,13 @@ def get_user_info(*args):
     else:
         return "无有效参数传入，请传入USER的列名"
     # -------------连接数据库开始查询--------------------
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
-    print(sql_str)
     cursor.execute("SELECT " + sql_str + " FROM USER")
     raw_result = cursor.fetchall()
     for row in raw_result:
@@ -180,8 +206,12 @@ def get_all_user_info():
     返回用户表中存储的所有数据信息
     :return: [{'user_ID':...,'root_dir':...,'sys_admin':...}] 字典的列表
     """
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     cursor.execute("SELECT ID, root_dir, sys_admin FROM USER")
     datalist = []
@@ -207,8 +237,12 @@ def get_root_dir_by_id(user_id):
     if len(user_id) > 20:
         details = 'user_id的长度不应该大于20，数据库中存储类型为VARCHAR(20)'
         return {'state': state, 'root_dir': root_dir, 'details': details}
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     count = cursor.execute("SELECT root_dir FROM USER WHERE ID='" + user_id + "';")
     if count == 0:
@@ -233,10 +267,13 @@ def if_user_exists(user_id):
     :return: BOOL
     """
     user_id = str(user_id)
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
-    print(user_id)
     count = cursor.execute("SELECT * FROM USER WHERE ID='" + user_id + "';")
     if count == 0:
         result = False

@@ -17,8 +17,8 @@ if '../../' not in sys.path:
 
 from common.address_helper import change_backslash_to_slash, double_backslash
 from common.address_transfer import resolve_path_to_actual_path
-from const_var import DB_NAME, DATABASE_HOST, DATABASE_PORT, DATABASE_PWD, DATABASE_USER
-from database.db_helpers.table_file_tree import get_file_size
+from const_var import FileCube_DbConfig
+from file_storage import get_file_size
 sys_str = platform.system()
 
 
@@ -31,8 +31,12 @@ def make_dir(path, operator_name, dir_name):
     :return: {'state':...,'details':...} state = 'failed' or 'success'; details为报错信息或新建的文件夹的信息
     """
     # 此处的path是数据库所存储的路径格式的path
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['name'],
+                           charset='utf8')
     cursor = conn.cursor()
     result = {'state': 'unknown', 'details': 'unknown'}
     try:
@@ -105,8 +109,12 @@ def upload_file(upload_path, uploader_name, my_file):
         # 文件是否为空的判断应该在函数外完成，此处仅作调试用
     else:
         try:
-            conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                                   passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+            conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                                   port=FileCube_DbConfig['port'],
+                                   user=FileCube_DbConfig['user'],
+                                   passwd=FileCube_DbConfig['pwd'],
+                                   db=FileCube_DbConfig['name'],
+                                   charset='utf8')
             cursor = conn.cursor()
             count = cursor.execute("SELECT * FROM file_tree "
                                    "WHERE dir = '" + str(upload_path) + str(my_file.name) + "'")
@@ -231,8 +239,12 @@ def modify_user_root_dir(username, original_root_dir, new_root_dir, append_allow
     username = str(username)
     original_root_dir = str(original_root_dir)
     new_root_dir = str(new_root_dir)
-    conn = pymysql.connect(host=DATABASE_HOST, port=DATABASE_PORT, user=DATABASE_USER,
-                           passwd=DATABASE_PWD, db=DB_NAME, charset='utf8')
+    conn = pymysql.connect(host=FileCube_DbConfig['host'],
+                           port=FileCube_DbConfig['port'],
+                           user=FileCube_DbConfig['user'],
+                           passwd=FileCube_DbConfig['pwd'],
+                           db=FileCube_DbConfig['db_name'],
+                           charset='utf8')
     cursor = conn.cursor()
     count = cursor.execute("SELECT root_dir FROM USER WHERE ID=='" + username + "'")
     root_dir_in_db = ''

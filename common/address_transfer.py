@@ -5,6 +5,7 @@ Date: 2020/06/01
 Desc: 路径的解析模块，hfs路径与实际路径的转换
 """
 import sys
+
 if '../' not in sys.path:
     sys.path.append('../')
 from common import address_helper
@@ -19,8 +20,9 @@ def get_volume_relationship():
     :return: [{'volume':...,'actual_path':...,'sys_str':...}]:字典的列表，
     'volume'与'actual_path'均为唯一，'sys_str'为'Linux'或'Windows'
     """
-    raw_data = table_volume_mapping.get_volume_mapping('volume_path',
-                                                       'actual_path', 'path_type')['details']
+    _, raw_data = table_volume_mapping.get_volume_mapping('volume_path',
+                                                          'actual_path',
+                                                          'path_type')
     volume_mapping = []
     for row in raw_data:
         volume_mapping.append({'volume': row['volume_path'],
@@ -33,7 +35,8 @@ def resolve_path_to_actual_path(path_in_hfs):
     """
     将系统的逻辑路径解析为实际存储路径
     :param path_in_hfs: 文件或文件夹在hfs系统中显示的路径
-    :return: {'state':BOOL,'actual_path': 文件或文件夹实际存储的路径 }
+    :return: state, actual_path
+    'state':BOOL,'actual_path': 文件或文件夹实际存储的路径
     """
     path_in_hfs = str(path_in_hfs)
     volume_mapping = get_volume_relationship()
@@ -48,7 +51,6 @@ def resolve_path_to_actual_path(path_in_hfs):
                 selected_volume['actual_path'] = record['actual_path']
                 selected_volume['sys_str'] = record['sys_str']
     # 长度为零就是没匹配到
-    actual_path_for_parameter = ''
     state = False
     if length_of_selected_volume == 0:
         actual_path_for_parameter = path_in_hfs
@@ -61,7 +63,7 @@ def resolve_path_to_actual_path(path_in_hfs):
         if selected_volume['sys_str'] == 'Windows':
             path_2nd_part = address_helper.change_slash_to_backslash(path_2nd_part)
         actual_path_for_parameter = path_1st_part + path_2nd_part
-    return {'state': state, 'actual_path': actual_path_for_parameter}
+    return state, actual_path_for_parameter
 
 
 def resolve_actual_path_to_path(actual_path):
@@ -69,7 +71,8 @@ def resolve_actual_path_to_path(actual_path):
     将本机上某目录依据卷映射关系表转换为系统的逻辑路径
     函数中的sys_str 为 'Linux' 或 'Windows'
     :param actual_path: 文件或文件夹实际存储的路径
-    :return: {'state':...,'path_in_hfs': 文件或文件夹在hfs系统中显示的路径 }
+    :return: state, path_in_hfs
+    {'state':...,'path_in_hfs': 文件或文件夹在hfs系统中显示的路径 }
     """
     actual_path = str(actual_path)
     volume_mapping = get_volume_relationship()
@@ -94,4 +97,4 @@ def resolve_actual_path_to_path(actual_path):
         path_in_hfs = first_part_of_path + second_part_of_path
     else:
         path_in_hfs = actual_path
-    return {'state': state, 'path_in_hfs': path_in_hfs}
+    return state, path_in_hfs
