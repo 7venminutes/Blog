@@ -81,9 +81,9 @@ def receive_finished_task_from_ServiceEnd(request):
         user_id = cursor.fetchone()[0]
         # fixme[baixu] 此处假定get_root_dir_by_id()不会返回False的state
         transformed_image_dir = ('%s.starry/%s/transform.%s'
-                              % (table_user.get_root_dir_by_id(user_id)['root_dir'],
-                                 finished_task_id,
-                                 'png' if finished_task.image.type == 'PNG' else 'jpg'))
+                                 % (table_user.get_root_dir_by_id(user_id)['root_dir'],
+                                    finished_task_id,
+                                    'png' if finished_task.image.type == 'PNG' else 'jpg'))
         cursor.execute("UPDATE %s SET task_status='success', task_finish_time='%s',"
                        "transformed_image_path='%s' WHERE task_id='%s'"
                        % (transform_task.TABLE_TRANSFORM_TASK,
@@ -93,7 +93,6 @@ def receive_finished_task_from_ServiceEnd(request):
         # 将图片写入对应路径
         try:
             _, actual_path = address_transfer.resolve_path_to_actual_path(transformed_image_dir)
-            utils.make_dir_if_not_exists(actual_path)
             Image.open(BytesIO(finished_task.image.image)).save(actual_path)
         except OSError as error_msg:
             logging.error('failed to receive finished task from ServiceEnd\n'
