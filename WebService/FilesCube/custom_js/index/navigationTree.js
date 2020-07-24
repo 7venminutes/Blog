@@ -29,7 +29,7 @@ $('#navigationTree').tree({
             navigationTree.tree('remove', children_list[i].target);
 
         $.ajax({
-            url:"/filescube/index/get_files_under_dir/",
+            url:"/get_files_under_dir/",
             type:"post",
             data:{"file_dir":file_dir,
                 'csrfmiddlewaretoken': csrf,},

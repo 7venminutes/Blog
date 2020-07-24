@@ -51,15 +51,15 @@
             <div title="概览" style="padding:20px;display:none;">
                 <div style="width: 600px">
                         <h4>选择迁移风格</h4>
-                    <select class="easyui-combobox" data-options="editable:false" id="new_access_opt">
-                        <option>denoised-starry</option>
-                        <option>scream</option>
-                        <option>cubist</option>
-                        <option>wave</option>
-                        <option>feathers</option>
-                        <option>mosaic</option>
-                        <option>udnie</option>
-                        <option>painting</option>
+                    <select class="easyui-combobox" data-options="editable:false" id="style_selected">
+                        <option>Denoised_Starry</option>
+                        <option>Scream</option>
+                        <option>Cubist</option>
+                        <option>Wave</option>
+                        <option>Feathers</option>
+                        <option>Mosaic</option>
+                        <option>Udnie</option>
+                        <option>Painting</option>
                     </select>
                     <table>
                         <tr>
@@ -87,9 +87,29 @@
                         </div>
                     </div>
                     <div id="picker">点此选择上传图片</div>
-
+                    <a class = "easyui-linkbutton" style="background-color: #5ac1e0" onclick="a()">重新上传</a>
+                    <script>
+                        function a()
+                        {
+                            alert('点击这个按钮之后，若您当前的任务未完成，则会用新的图片替换当前排队任务中的图片；\n' +
+                                '若已完成，则会刷新上传组件的状态，新建新的图片风格转换\n' +
+                                '不点这个按钮的话，你就只能通过“点此选择上传图片”上传一次\n\n' +
+                                '可惜这个功能我还没做，（╯\' - \')╯︵ ┻━┻ （掀桌子） ┬─┬ ノ( \' - \'ノ) （摆好摆好） (╯°Д°)╯︵ ┻━┻(再TA喵掀一次）\n' +
+                                '去点浏览器的刷新按钮吧，')
+                        }
+                    </script>
                     <div class="datagrid-toolbar"></div>
                     <h4>迁移结果展示
+                        <table id="display_transform_result">
+<tr>
+                            <td style="width: 15%">
+                                <img width="100%" id="image_before_transformed" src="">
+                            </td>
+                            <td style="width: 15%">
+                                <img width="100%" id="image_after_transformed" src="">
+                            </td>
+                        </tr>
+                        </table>
                     </h4>
                 </div>
             </div>
@@ -100,20 +120,29 @@
 </body>
 </html>
 
-<script type="text/javascript" src={% static 'easyui/jquery.min.js'%}></script>
-<script type="text/javascript" src={% static 'easyui/jquery.easyui.min.js'%}></script>
-    <script src={% static "webuploader/webuploader.min.js" %}></script>
+<script type="text/javascript" src="{% static 'easyui/jquery.min.js'%}"></script>
+<script type="text/javascript" src="{% static 'easyui/jquery.easyui.min.js'%}"></script>
+<script src="{% static 'webuploader/webuploader.min.js' %}"></script>
+<script src="{% static 'starry_custom_js/global_variables.js' %}"></script>
+<script src="{% static 'starry_custom_js/initialize.js' %}"></script>
+<script src="{% static 'starry_custom_js/image_transform.js' %}"></script>
 <script>
-    var fileMd5;
-    var file_path = 'hfs/test/'
+
     $(document).ready(function() {
         let progress_bar = $('.progress-bar');
         var task_id = WebUploader.Base.guid(); // 产生文件唯一标识符task_id
-
+        let upload_path = file_path + task_id.toString() + '/'
         bigFileUploader = WebUploader.create({
             swf: './static/webuploader/Uploader.swf',
             server: '/filescube/tools/upload_part/', // 上传分片地址
             pick: '#picker',
+            /*accept: {
+                title: 'Images',
+                extensions: 'jpg,png,',
+                mimeTypes: 'image/jpg, image/png'
+            },*/
+            fileNumLimit: 1,
+            fileSizeLimit: 5 * 1024 * 1024,    // 5 M
             auto: true,
             chunked: true,
             chunkSize: 20 * 1024 * 1024,
@@ -123,18 +152,18 @@
             formData: { // 上传分片的http请求中一同携带的数据
                 mode: 0,
                 task_id: task_id,
-                file_path: file_path,
+                file_path: upload_path,
                 csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
             },
         });
-        bigFileUploader.on('beforeFileQueued', function() { // 开始上传时，调用该方法
+        bigFileUploader.on('beforeFileQueued', function(file) { // 开始上传时，调用该方法
             let have_access = false;
             $.ajax({
                 type : "POST",
                 url : "/filescube/tools/upload/check/",
                 async: false,
                 data : {
-                    file_path: file_path,
+                    file_path: upload_path,
                     csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
                 },
                 dataType : "json",
@@ -161,29 +190,47 @@
 
         bigFileUploader.on('uploadProgress', function(file, percentage) { // 一个分片上传成功后，调用该方法
             progress_bar.css('width', percentage * 100 - 1 + '%');
-            progress_bar.text(Math.floor(percentage * 100 - 1) + '%' + file.source['name']);
+            progress_bar.text(Math.floor(percentage * 100 - 1) + '%' + file.name);
         });
 
         bigFileUploader.on('uploadSuccess', function(file) { // 整个文件的所有分片都上传成功后，调用该方法
             var data = {
                 'task_id': task_id,
-                'filename': file.source['name'],
-                'file_path': file_path,
+                'filename': file.name,
+                'file_path': upload_path,
                 'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val(),
             };
             $.get('/filescube/tools/upload_success', data);
             progress_bar.css('width', '100%');
             progress_bar.text('100%');
             progress_bar.addClass('progress-bar-success');
-            progress_bar.text(file.source['name']+'上传完成');
-            display_file_list(file_path);
+            progress_bar.text(file.name+'上传完成');
+            let server_finished = false;
+            let image_url = 'http://' + window.location.host + '/filescube/' + upload_path + file.name;
+            let count = 0;
+            while(!server_finished && count<3){
+                $.ajax({
+                    type : "GET",
+                    url : image_url,
+                    async: false,
+                    statusCode: {
+                        200: function() {
+                            server_finished = true;
+                        },
+                    },
+                });
+                pause_sleep(1000);
+                count ++;
+            }
+            document.getElementById('image_before_transformed').src = image_url;
+            show_transform_image(task_id, file_path + file.name)
         });
 
         bigFileUploader.on('uploadError', function(file) { // 上传过程中发生异常，调用该方法
             progress_bar.css('width', '100%');
             progress_bar.text('100%');
             progress_bar.addClass('progress-bar-danger');
-            progress_bar.text(file.source['name']+'上传失败');
+            progress_bar.text(file.name+'上传失败');
         });
 
         bigFileUploader.on('uploadComplete', function(file) { // 上传结束，无论文件最终是否上传成功，该方法都会被调用

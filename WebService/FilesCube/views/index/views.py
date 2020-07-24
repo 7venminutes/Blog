@@ -36,7 +36,7 @@ def homepage(request):
     """
     err_info = []
     if not validate_identity(request):
-        return HttpResponseRedirect('/authentication/')
+        return HttpResponseRedirect('/filescube/authentication/')
     else:
         request.session['access_list'] = table_access.get_access_list_by_id(request.session['username'])
     try:
@@ -59,10 +59,10 @@ def homepage(request):
                 response = HttpResponse(image_stream, content_type="image/png")
                 return response
 
-        return render(request, 'index.html', locals())
+        return render(request, 'FilesCube/index.html', locals())
     except Exception as error:
         logging.error(error, exc_info=True)
-        return render(request, 'index.html', locals())
+        return render(request, 'FilesCube/index.html', locals())
 
 
 def get_file_list_under_dir(request):
