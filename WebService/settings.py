@@ -122,6 +122,7 @@ STATICFILES_DIRS = [
     ("easyui", os.path.join(BASE_DIR, "static/easyui")),
     ("css", os.path.join(BASE_DIR, "static/css")),
     ("custom_js", os.path.join(BASE_DIR, "WebService/FilesCube/custom_js")),
+    ("starry_custom_js", os.path.join(BASE_DIR, "WebService/Starry/starry_custom_js")),
     ("js", os.path.join(BASE_DIR, "static/js")),
     ("webuploader", os.path.join(BASE_DIR, "static/webuploader")),
     ("assets", os.path.join(BASE_DIR, "static/assets")),

@@ -7,15 +7,15 @@ Desc: 上传文件相关的处理函数（实现文件分片上传）
 import json
 import logging
 import os
-import sys
-import time
 
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+
 import database.db_helpers.db_helper as db_helper
 from common import address_transfer, key_checker
 from const_var import DEBUG_MODE
+from tools.utils import make_dir_if_not_exists
 from WebService.FilesCube import FilesCube_views
 
 
@@ -68,18 +68,21 @@ def get_deep_data(path='static/upload/'):
     return result
 
 
+@csrf_exempt
 def check_access(request):
     """
     检查用户是否在该路径下有上传权限
     :param request: request.POST['file_dir']
     :return: BOOL
     """
-    have_access = db_helper.lookup_access_in_the_list(request.POST['file_path'], 'new', request.session['access'])
+    _, upload_path = address_transfer.change_path_to_common_path(request.POST['file_path'])
+    have_access = db_helper.lookup_access_in_the_list(upload_path, 'new', request.session['access'])
     if DEBUG_MODE:
         logging.debug('检查用户是否有对应目录的上传权限( %s )', have_access)
     if have_access:
         return JsonResponse({'haveAccess': True})
     else:
+        logging.info('用户在%s下没有上传权限', upload_path)
         return JsonResponse({'haveAccess': False})
 
 
@@ -112,6 +115,7 @@ def upload_part(request):
                         , request.POST['file_path'])
 
 
+@csrf_exempt
 def upload(request):
     """
     接受前端发送过来的文件上传请求，向服务器写文件,
@@ -122,6 +126,7 @@ def upload(request):
     """
     task = request.POST['task_id']  # 获取文件的唯一标识符
     file_path = request.POST['file_path']
+    _, file_path = address_transfer.change_path_to_common_path(file_path)
     if not FilesCube_views.validate_identity(request):
         return HttpResponseRedirect('login/')
     elif not db_helper.lookup_access_in_the_list(file_path, 'new', request.session['access']):
@@ -134,7 +139,9 @@ def upload(request):
     else:
         # 进入上传流程
         # fixme[baixu][2020-07-20] 上传路径不存在时如何提醒前端？
+        # 上传路径不存在时尝试自动创建，创建失败再提醒前端
         _, actual_dir = address_transfer.resolve_path_to_actual_path(file_path)
+        make_dir_if_not_exists(actual_dir)
         upload_file = request.FILES['file']
         if key_checker.check_if_have_this_key(request.POST, 'chunk'):
             # 前端发送过来的数据是一个大文件的某个分片

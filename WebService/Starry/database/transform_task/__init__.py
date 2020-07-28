@@ -5,6 +5,8 @@ Date: 2020-07-21
 Desc: 转换任务表（进行中的和已完成的）
 """
 import logging
+from datetime import datetime
+
 import pymysql
 
 from const_var import Starry_DbConfig
@@ -123,3 +125,40 @@ def get_transformed_image_path(task_id):
         image_path = cursor.fetchone()[0]
     conn.close()
     return success, image_path
+
+
+def add_new_task(task_id, user_id, ipv4_ip, original_image_path, image_type, selected_style):
+    """
+    添加新任务
+    :return: state: BOOL
+    """
+    request_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = pymysql.connect(host=Starry_DbConfig['host'],
+                           port=Starry_DbConfig['port'],
+                           user=Starry_DbConfig['user'],
+                           passwd=Starry_DbConfig['pwd'],
+                           db=Starry_DbConfig['db_name'],
+                           charset='utf8')
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO %s (task_id, task_status, user_id, ipv4_ip, "
+                       "request_start_time, original_image_path, image_type, selected_style)"
+                       " VALUES('%s', 'new', '%s', '%s', '%s', '%s', '%s', '%s')"
+                       % (
+                            TABLE_TRANSFORM_TASK,
+                            task_id,
+                            user_id,
+                            ipv4_ip,
+                            request_start_time,
+                            original_image_path,
+                            image_type,
+                            selected_style
+                       ))
+        conn.commit()
+        state = True
+    except Exception as error:
+        state = False
+        logging.error(error, exc_info=True)
+        conn.rollback()
+    conn.close()
+    return state

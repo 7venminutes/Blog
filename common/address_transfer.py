@@ -4,12 +4,16 @@ Author: Baixu
 Date: 2020/06/01
 Desc: 路径的解析模块，hfs路径与实际路径的转换
 """
+import logging
 import sys
+
+from common.address_helper import separate_path
 
 if '../' not in sys.path:
     sys.path.append('../')
 from common import address_helper
 from database.db_helpers import table_volume_mapping
+from database.db_helpers.table_user.get_root_dir_by_id import get_root_dir_by_id
 
 
 # 返回卷映射关系表，为方便测试，此处直接返回设置好的字典，实际上线运行时，该函数从数据库中查询
@@ -38,7 +42,13 @@ def resolve_path_to_actual_path(path_in_hfs):
     :return: state, actual_path
     'state':BOOL,'actual_path': 文件或文件夹实际存储的路径
     """
+    # 先将path_in_hfs转换成FileCube系统内的通用形式
     path_in_hfs = str(path_in_hfs)
+    if path_in_hfs[0] == '/':
+        state, path_in_hfs = change_path_to_common_path(path_in_hfs)
+        if not state:
+            return state, path_in_hfs
+
     volume_mapping = get_volume_relationship()
     selected_volume = {'volume': '', 'actual_path': '', 'sys_str': ''}
     length_of_selected_volume = 0
@@ -98,3 +108,38 @@ def resolve_actual_path_to_path(actual_path):
     else:
         path_in_hfs = actual_path
     return state, path_in_hfs
+
+
+def change_path_to_common_path(path):
+    """
+    将用户风格的路径转换为FileCube系统内的通用路径
+    用户风格的路径: '/'开头，第一项为用户id，表示对应用户的根目录
+    :param path: str 用户风格的路径形式 或 通用形式的路径
+    :return: state(BOOL), common_path
+    """
+    path = str(path)
+    if len(path) > 0 and path[0] == '/':
+        # 尝试用用户风格的路径形式来解析, 若state为False，说明该尝试失败；路径按通用路径处理
+        item_list = separate_path(path, '/')
+        if len(item_list) >= 1:
+            # common_path初始值为用户id对应的根目录
+            state, common_path, details = get_root_dir_by_id(item_list[0])
+            if not state:
+                logging.warning(details)
+            count = 0
+            for item in item_list:
+                if count > 0:
+                    common_path += '%s/' % item
+                count += 1
+            if not path.endswith('/'):
+                common_path = common_path[:-1]
+        else:
+            state = False
+            common_path = ''
+        # 若state为False, 说明路径不是用户根目录风格的路径形式，而是通用路径
+        if not state:
+            common_path = path
+    else:
+        state = True
+        common_path = path
+    return state, common_path

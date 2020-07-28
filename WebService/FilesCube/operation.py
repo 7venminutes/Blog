@@ -35,7 +35,7 @@ def make_dir(path, operator_name, dir_name):
                            port=FileCube_DbConfig['port'],
                            user=FileCube_DbConfig['user'],
                            passwd=FileCube_DbConfig['pwd'],
-                           db=FileCube_DbConfig['name'],
+                           db=FileCube_DbConfig['db_name'],
                            charset='utf8')
     cursor = conn.cursor()
     result = {'state': 'unknown', 'details': 'unknown'}
@@ -50,15 +50,15 @@ def make_dir(path, operator_name, dir_name):
         else:
             print('3')
             print(path+dir_name)
-            path_transferred = resolve_path_to_actual_path(path + dir_name)
+            state, actual_path = resolve_path_to_actual_path(path + dir_name)
             print('3.0.1sss')
-            if not path_transferred['state']:
+            if not state:
                 print('3.1')
                 result['state'] = 'failed'
                 result['details'] = "路径无法解析"
             else:
                 print('3.2')
-                os.mkdir(path_transferred['actual_path'])
+                os.mkdir(actual_path)
                 print('3.3')
         if result['state'] != 'failed':
             print('4')
@@ -113,7 +113,7 @@ def upload_file(upload_path, uploader_name, my_file):
                                    port=FileCube_DbConfig['port'],
                                    user=FileCube_DbConfig['user'],
                                    passwd=FileCube_DbConfig['pwd'],
-                                   db=FileCube_DbConfig['name'],
+                                   db=FileCube_DbConfig['db_name'],
                                    charset='utf8')
             cursor = conn.cursor()
             count = cursor.execute("SELECT * FROM file_tree "
@@ -163,12 +163,10 @@ def remove_file(remove_dir, operator_name):
     :param operator_name: 操作者
     :return: unknown
     """
-    path_transferred = resolve_path_to_actual_path(remove_dir)
-    if not path_transferred['state']:
+    state, actual_remove_dir = resolve_path_to_actual_path(remove_dir)
+    if not state:
         print("路径无法解析，不知道删除什么文件")
         return
-    else:
-        actual_remove_dir = path_transferred['actual_path']
     if os.path.exists(actual_remove_dir):
         if os.path.isdir(actual_remove_dir):
             del_file(actual_remove_dir)

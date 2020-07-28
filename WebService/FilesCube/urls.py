@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.views.static import serve
 
 from WebService.FilesCube import FilesCube_views as FilesCube_views
-from WebService.FilesCube.views.tools import views as tools_views
+from WebService.FilesCube.views.tools import views as tools_views, display_rss
 from WebService.FilesCube.views.index import views as index
 
 urlpatterns = [
@@ -34,6 +34,5 @@ urlpatterns = [
     path('volume_management/', include('WebService.FilesCube.views.volume_management.urls')),
     path('tools/', include('WebService.FilesCube.views.tools.urls')),
     url(r'^qrcode/(.+)$', tools_views.generate_qr_code, name='qrcode'),
-    # 自定义界面，项目无关
-    url(r'^(?P<path>.*)$', serve, {'document_root': 'FilesCube/static/easyui'}),
+    url(r'(.+)$', display_rss.display_static_file),
 ]
