@@ -16,5 +16,6 @@ urlpatterns = [
     path('blog/', include('WebService.Blog.urls')),
     path('filescube/', include('WebService.FilesCube.urls')),
     path('starry/', include('WebService.Starry.urls')),
+    url(r'(.*)$', webservice_views.redirect),
     # url(r'^(?P<path>.*)$', serve, {'document_root': 'FilesCube/static/easyui'}),
 ]
