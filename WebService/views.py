@@ -3,6 +3,8 @@ Author: Baixu
 Date: 2020-07-10
 Desc: 网站主入口的视图函数
 """
+import logging
+
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
@@ -18,4 +20,5 @@ def redirect(request, path):
     :param request: WSGI对象，用户的这次网络请求
     :return: 重定向的回复
     """
+    logging.info('Can\'t find url %s, redirect it to https' % path)
     return HttpResponseRedirect('https://7venminutes.com/' + path)
