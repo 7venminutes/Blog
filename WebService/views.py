@@ -18,4 +18,5 @@ def redirect(request, path):
     :param request: WSGI对象，用户的这次网络请求
     :return: 重定向的回复
     """
+    print('redirect %s' % path)
     return HttpResponseRedirect('https://7venminutes.com/' + path)
